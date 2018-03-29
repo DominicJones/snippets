@@ -1,21 +1,24 @@
-#include <iostream>
-#include <functional>
+// -*- C++ -*-
 
+#ifndef _hash_combine_h_
+#define _hash_combine_h_
 
-template<class T>
-inline void hash_combine(std::size_t &seed, T const &value)
+#include <cstdint>
+
+constexpr uint64_t hash(uint64_t const &v)
 {
-    std::hash<T> hasher;
-    seed ^= hasher(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  return v * uint64_t(104723);
 }
 
-
-int main()
+constexpr uint64_t hash_combine(uint64_t const &seed, uint64_t const &v)
 {
-  int a = 1;
-  int b = 2;
-  size_t hash = 0;
-  hash_combine(hash, a);
-  hash_combine(hash, b);
-  std::cout << hash << std::endl;
+  return seed ^ (hash(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
+
+template<typename... Args>
+constexpr uint64_t hash_combine(uint64_t const &seed, uint64_t const &v, Args... args)
+{
+  return hash_combine(hash_combine(seed, args...), v);
+}
+
+#endif // _hash_combine_h_
