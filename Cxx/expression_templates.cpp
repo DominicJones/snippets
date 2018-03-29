@@ -1,112 +1,127 @@
-// from: http://en.wikipedia.org/wiki/Expression_templates
-
-#include <iostream>
-#include <vector>
-#include <cassert>
+#include <type_traits>
 
 
-template <typename E>
-class VecExpression
+namespace std
+{
+  template<typename...> struct make_void { using type = void; };
+  template<typename... T> using void_t = typename make_void<T...>::type;
+}
+
+
+template<typename, typename = void>
+struct Has_Typedef_ExpressionBase : std::false_type {};
+
+template<typename T>
+struct Has_Typedef_ExpressionBase<T, std::void_t<typename T::ExpressionBase> > : std::true_type {};
+
+
+template<typename R, typename E>
+class Expression
 {
 public:
-  typedef std::vector<double>         container_type;
-  typedef container_type::size_type   size_type;
-  typedef container_type::value_type  value_type;
-  typedef container_type::reference   reference;
-
-  size_type  size()                  const { return static_cast<E const&>(*this).size(); }
-  value_type operator[](size_type i) const { return static_cast<E const&>(*this)[i];     }
-
-  operator E&()             { return static_cast<      E&>(*this); }
-  operator E const&() const { return static_cast<const E&>(*this); }
+  using ExpressionBase = Expression;
+  using Result = R;
+  E const &cast() const { return static_cast<E const &>(*this); }
 };
 
 
-class Vec : public VecExpression<Vec>
+template<typename R>
+class Scalar
+  : public Expression<R, Scalar<R> >
 {
 public:
-  reference  operator[](size_type i)       { return _data[i]; }
-  value_type operator[](size_type i) const { return _data[i]; }
-  size_type  size()                  const { return _data.size(); }
+  Scalar() : _a0(0) {}
+  Scalar(R const &a0) : _a0(a0) {}
 
-  Vec(container_type const &vec) : _data(vec) {}
-
-  template <typename E>
-  Vec(VecExpression<E> const& vec)
-  {
-    E const& v = vec;
-    _data.resize(v.size());
-    for (size_type i = 0; i != v.size(); ++i)
-      {
-        _data[i] = v[i];
-      }
-  }
-
-private:
-  container_type _data;
-};
-
-
-template <typename E1, typename E2>
-class VecDifference : public VecExpression<VecDifference<E1, E2> >
-{
-public:
-  typedef Vec::size_type size_type;
-  typedef Vec::value_type value_type;
-
-  VecDifference(VecExpression<E1> const& u, VecExpression<E2> const& v)
-    : _u(u), _v(v)
-  {
-    assert(u.size() == v.size());
-  }
-
-  size_type size() const { return _v.size(); }
-  value_type operator[](Vec::size_type i) const { return _u[i] - _v[i]; }
-
-private:
-  E1 const& _u;
-  E2 const& _v;
-};
-
-
-template <typename E>
-class VecScaled : public VecExpression<VecScaled<E> >
-{
-public:
-  VecScaled(double alpha, VecExpression<E> const& v)
-    : _alpha(alpha), _v(v)
+  template<typename E0>
+  Scalar(E0 const &e0,
+         typename std::enable_if<Has_Typedef_ExpressionBase<E0>::value>::type * enable = nullptr)
+    : _a0(e0.value())
   {}
 
-  Vec::size_type size() const { return _v.size(); }
-  Vec::value_type operator[](Vec::size_type i) const { return _alpha * _v[i]; }
+  R value() const { return {_a0}; }
 
 private:
-  double _alpha;
-  E const& _v;
+  R _a0;
 };
 
 
-template <typename E1, typename E2>
-VecDifference<E1, E2> const
-operator-(VecExpression<E1> const& u, VecExpression<E2> const& v)
+template<typename R, typename OP, typename E0, typename E1>
+class BinaryOperation
+  : public Expression<R, BinaryOperation<R, OP, E0, E1> >
 {
-  return VecDifference<E1, E2>(u, v);
-}
+public:
+  BinaryOperation(Expression<R, E0> const &e0,
+                  Expression<R, E1> const &e1)
+    : _e0(e0.cast())
+    , _e1(e1.cast())
+  {}
+
+  R value() const { return {OP::value(_e0.value(), _e1.value())}; }
+
+private:
+  /// BUG: referencing causes a segmentation fault (g++ -std=c++11 -O3)
+  E0 const &_e0;
+  E1 const &_e1;
+
+  // E0 const _e0;
+  // E1 const _e1;
+};
 
 
-template <typename E>
-VecScaled<E> const
-operator*(double alpha, VecExpression<E> const& v)
-{
-  return VecScaled<E>(alpha, v);
-}
+template<typename... T> using Promote = typename std::common_type<T...>::type;
+
+
+#define GenerateSpecificBinaryOperator(OperatorType, Operator)  \
+  template<typename R>                                          \
+  struct OperatorType                                           \
+  {                                                             \
+    template<typename A0, typename A1>                          \
+      static R value(A0 const &a0, A1 const &a1)                \
+    {                                                           \
+      return {a0 Operator a1};                                  \
+    }                                                           \
+  };
+
+GenerateSpecificBinaryOperator(Add, +)
+GenerateSpecificBinaryOperator(Subtract, -)
+GenerateSpecificBinaryOperator(Multiply, *)
+GenerateSpecificBinaryOperator(Divide, /)
+
+#undef GenerateSpecificBinaryOperator
+
+
+#define GenerateSpecificBinaryOperation(OperatorType, Operator)         \
+  template<typename E0, typename E1>                                    \
+  BinaryOperation                                                       \
+  <Promote<typename E0::Result, typename E1::Result>,                   \
+   OperatorType<Promote<typename E0::Result, typename E1::Result> >,    \
+   E0,                                                                  \
+   E1                                                                   \
+   >                                                                    \
+  Operator(Expression<typename E0::Result, E0> const &e0,               \
+           Expression<typename E1::Result, E1> const &e1)               \
+  {                                                                     \
+    return {e0.cast(), e1.cast()};                                      \
+  }
+
+GenerateSpecificBinaryOperation(Add, operator+)
+GenerateSpecificBinaryOperation(Subtract, operator-)
+GenerateSpecificBinaryOperation(Multiply, operator*)
+GenerateSpecificBinaryOperation(Divide, operator/)
+
+#undef GenerateSpecificBinaryOperation
 
 
 int main()
 {
-  double alpha(5);
-  Vec u(Vec::container_type(2, 20));
-  Vec v(Vec::container_type(2, 10));
-  Vec x = alpha * (u - v);
-  std::cout << x[0] << " " << x[1] << std::endl;
+  Scalar<double> const a(3);
+  Scalar<double> const b(4);
+  Scalar<double> z;
+
+  auto u = a + b * a;
+  auto v = a - b / a;
+  z = u * v;
+
+  return int(z.value());
 }

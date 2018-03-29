@@ -1,30 +1,31 @@
 #include <type_traits>
-#include <typeinfo>
 #include <iostream>
 
-struct Operator {};
-struct Summate: Operator {};
-struct Multiply: Operator {};
+class Operator {};
+class Summate: Operator {};
+class Multiply: Operator {};
 
 template<class Operator> class Eval
 {
 public:
-  template<class Operator_t>
-  explicit Eval(Operator_t const &, typename std::enable_if<std::is_same<Operator, Summate>::value && std::is_same<Operator_t, Summate>::value>::type * = 0)
-  {
-    std::cout << typeid(Operator).name() << "::" << typeid(Operator_t).name() << std::endl;
-  }
+  template<class Operator_t = Operator>
+  explicit Eval(int const &val, typename std::enable_if<std::is_same<Operator_t, Summate>::value>::type * resolve = 0)
+  : _val(val + val)
+  {}
 
-  template<class Operator_t>
-  explicit Eval(Operator_t const &, typename std::enable_if<std::is_same<Operator, Multiply>::value && std::is_same<Operator_t, Multiply>::value>::type * = 0)
-  {
-    std::cout << typeid(Operator).name() << "::" << typeid(Operator_t).name() << std::endl;
-  }
+  template<class Operator_t = Operator>
+  explicit Eval(int const &val, typename std::enable_if<std::is_same<Operator_t, Multiply>::value>::type * resolve = 0)
+  : _val(val * val)
+  {}
+
+  int result() const { return _val; }
+
+private:
+  int const _val;
 };
 
 int main()
 {
-  Eval<Multiply> em((Multiply()));
-  Eval<Summate> es((Summate()));
-  // Eval<Summate> es_bad((Multiply()));
+  std::cout << Eval<Multiply>(3).result() << std::endl;
+  std::cout << Eval<Summate>(3).result() << std::endl;
 }
