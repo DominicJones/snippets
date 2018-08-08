@@ -32,7 +32,7 @@ namespace slow
 
 namespace fast
 {
-  template<int...> struct seq { using type = seq; };
+  template<int...> struct seq {};
 
   template<class S1, class S2> struct concat;
 
