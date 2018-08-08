@@ -5,7 +5,7 @@ namespace slow
 {
   template<int...> struct seq {};
 
-  template<class S2> struct concat;
+  template<class S> struct concat;
 
   template<int... I>
   struct concat<seq<I...> >
