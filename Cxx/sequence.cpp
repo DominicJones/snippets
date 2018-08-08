@@ -1,9 +1,7 @@
-#include <iostream>
-
-
 namespace slow
 {
   template<int...> struct seq {};
+
 
   template<class S> struct concat;
 
@@ -19,13 +17,13 @@ namespace slow
   template<int N> struct make_seq;
   template<int N> using make_seq_t = typename make_seq<N>::type;
 
-
   template<> struct make_seq<0> { using type = seq<>; };
 
   template<int N>
   struct make_seq
   {
-    using type = concat_t<make_seq_t<(N-1)> >;
+    using _l = make_seq_t<(N-1)>;
+    using type = concat_t<_l>;
   };
 }
 
@@ -33,6 +31,7 @@ namespace slow
 namespace fast
 {
   template<int...> struct seq {};
+
 
   template<class S1, class S2> struct concat;
 
@@ -48,14 +47,15 @@ namespace fast
   template<int N> struct make_seq;
   template<int N> using make_seq_t = typename make_seq<N>::type;
 
-
   template<> struct make_seq<0> { using type = seq<>; };
   template<> struct make_seq<1> { using type = seq<0>; };
 
   template<int N>
   struct make_seq
   {
-    using type = concat_t<make_seq_t<(N/2)>, make_seq_t<(N-N/2)> >;
+    using _l = make_seq_t<(N/2)>;
+    using _u = make_seq_t<(N-N/2)>;
+    using type = concat_t<_l, _u>;
   };
 }
 
