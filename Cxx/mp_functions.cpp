@@ -1,52 +1,150 @@
 // -*- C++ -*-
 
-#ifndef _demangle_h_
-#define _demangle_h_
+#ifndef _AlwaysInline_h_
+#define _AlwaysInline_h_
 
-#include <typeinfo>
-#include <iostream>
-#include <cstdlib>
-#include <memory>
+#define AlwaysInlineGCC __attribute__((always_inline))
 
-#if defined(__GNUG__)
-#include <cxxabi.h>
-struct Demangle
-{
-  static std::string eval(char const * name)
-  {
-    int status(-4);
-    char * realname;
+// #define AlwaysInline __attribute__((always_inline))
 
-    realname = abi::__cxa_demangle(name, 0, 0, &status);
+#define AlwaysInline
+#define AlwaysInlineCtor AlwaysInlineGCC
 
-    std::string result(realname);
-    free(realname);
-    return result;
-  }
-};
-
-template<typename Expr_t>
-std::string demangle(Expr_t const &expr)
-{
-  return Demangle::eval(typeid(expr).name());
-}
-
-template<typename Expr_t>
-std::string demangle()
-{
-  return Demangle::eval(typeid(Expr_t).name());
-}
-#endif
-
-#endif // _demangle_h_
+#endif // _AlwaysInline_h_
 
 
 
 
 // -*- C++ -*-
 
-#ifndef _mp_functions_h_
-#define _mp_functions_h_
+#ifndef _mp_tuple_h_
+#define _mp_tuple_h_
+
+
+// #define USE_STD_TUPLE
+
+#ifdef USE_STD_TUPLE
+
+#include <tuple>
+template<typename... Ts> using mp_tuple = std::tuple<Ts...>;
+
+template<std::size_t idx, typename... Ts> AlwaysInline inline constexpr decltype(auto) mp_get_v(mp_tuple<Ts...> const &t) { return std::get<idx>(t); }
+template<std::size_t idx, typename... Ts> AlwaysInline inline constexpr decltype(auto) mp_get_r(mp_tuple<Ts...> const &t) { return(std::get<idx>(t)); }
+template<std::size_t idx, typename... Ts> AlwaysInline inline constexpr decltype(auto) mp_get_r(mp_tuple<Ts...> &t) { return(std::get<idx>(t)); }
+
+#else
+
+#include "AlwaysInline.h"
+
+
+// mp_tuple
+template<std::size_t idx, typename... Ts>
+struct mp_tuple_impl;
+
+template<std::size_t idx>
+struct mp_tuple_impl<idx>
+{};
+
+template<std::size_t idx, typename T1, typename... Ts>
+struct mp_tuple_impl<idx, T1, Ts...>
+  : mp_tuple_impl<idx + 1, Ts...>
+{
+  using base_t = mp_tuple_impl<idx + 1, Ts...>;
+
+  AlwaysInline inline constexpr mp_tuple_impl() : base_t() {}
+
+  AlwaysInline inline constexpr mp_tuple_impl(T1 value, Ts... values)
+    : value(value)
+    , base_t(values...)
+  {}
+
+  T1 value;
+};
+
+template<typename... Ts>
+struct mp_tuple
+  : mp_tuple_impl<0, Ts...>
+{
+  using base_t = mp_tuple_impl<0, Ts...>;
+  AlwaysInline inline constexpr mp_tuple() : base_t() {}
+  AlwaysInline inline constexpr mp_tuple(Ts... values) : base_t(values...) {}
+};
+
+template<>
+struct mp_tuple<>
+{
+  AlwaysInline inline constexpr mp_tuple() {}
+};
+
+
+// mp_tuple_element
+template<std::size_t idx, typename _Tp>
+struct mp_tuple_element;
+
+template<std::size_t idx, typename T1, typename... Ts>
+struct mp_tuple_element<idx, mp_tuple<T1, Ts...> >
+  : mp_tuple_element<idx - 1, mp_tuple<Ts...> >
+{};
+
+template<typename T1, typename... Ts>
+struct mp_tuple_element<0, mp_tuple<T1, Ts...> >
+{
+  using type = T1;
+};
+
+
+// mp_get_v
+template<std::size_t idx, typename T1, typename... Ts>
+AlwaysInline inline constexpr T1 mp_get_v_impl(mp_tuple_impl<idx, T1, Ts...> const &t)
+{
+  return t.value;
+}
+
+template<std::size_t idx, typename... Ts>
+AlwaysInline inline constexpr typename mp_tuple_element<idx, mp_tuple<Ts...> >::type
+mp_get_v(mp_tuple<Ts...> const &t)
+{
+  return mp_get_v_impl<idx>(t);
+}
+
+
+// mp_get_r [non-const]
+template<std::size_t idx, typename T1, typename... Ts>
+AlwaysInline inline constexpr T1 &mp_get_r_impl(mp_tuple_impl<idx, T1, Ts...> &t)
+{
+  return t.value;
+}
+
+template<std::size_t idx, typename... Ts>
+AlwaysInline inline constexpr typename mp_tuple_element<idx, mp_tuple<Ts...> >::type &
+mp_get_r(mp_tuple<Ts...> &t)
+{
+  return mp_get_r_impl<idx>(t);
+}
+
+
+// mp_get_r [const]
+template<std::size_t idx, typename T1, typename... Ts>
+AlwaysInline inline constexpr T1 const &mp_get_r_impl(mp_tuple_impl<idx, T1, Ts...> const &t)
+{
+  return t.value;
+}
+
+template<std::size_t idx, typename... Ts>
+AlwaysInline inline constexpr typename mp_tuple_element<idx, mp_tuple<Ts...> >::type const &
+mp_get_r(mp_tuple<Ts...> const &t)
+{
+  return mp_get_r_impl<idx>(t);
+}
+
+#endif
+
+#endif // _mp_tuple_h_
+
+
+
+
+// -*- C++ -*-
 
 /*
 Based on:
@@ -55,9 +153,35 @@ Based on:
   by Peter Dimov, 26.05.2015
 */
 
+
+#ifndef _mp_functions_basic_h_
+#define _mp_functions_basic_h_
+
+
+// MIGRATE
+#include "brigand.hpp"
+
+#include "mp_tuple.h"
+
 #include <tuple>
 #include <type_traits>
 #include <utility>
+
+
+// mp_list
+/*
+template<class... T> struct mp_list {};
+*/
+template<class... T> using mp_list = brigand::list<T...>;
+
+
+// mp_void
+struct mp_void {};
+
+
+// is_mp_void
+template<class T> struct is_mp_void { static bool constexpr value = false; };
+template<> struct is_mp_void<mp_void> { static bool constexpr value = true; };
 
 
 // mp_identity
@@ -65,10 +189,6 @@ template<class T> struct mp_identity { using type = T; };
 template<class T> struct mp_identity<mp_identity<T> > { using type = T; };
 
 template<class T> using mp_identity_t = typename mp_identity<T>::type;
-
-
-// mp_list
-template<class... T> struct mp_list {};
 
 
 // mp_rename
@@ -97,6 +217,72 @@ template<std::size_t N> using mp_size_t = std::integral_constant<std::size_t, N>
 
 // mp_apply
 template<template<class...> class F, class L> using mp_apply = mp_rename<L, F>;
+
+
+// mp_true
+using mp_true = std::integral_constant<bool, true>;
+
+
+// mp_false
+using mp_false = std::integral_constant<bool, false>;
+
+
+// mp_empty
+template<class... L> struct mp_empty;
+
+template<template<class...> class L>
+struct mp_empty<L<> > : mp_true {};
+
+template<template<class...> class L1, class... L>
+struct mp_empty<L1<>, L...>
+{
+  static auto constexpr value = mp_empty<L...>::value;
+};
+
+template<template<class...> class L1, class T1, class... T, class... L>
+struct mp_empty<L1<T1, T...>, L...> : mp_false {};
+
+
+// mp_clear
+template<class L> struct mp_clear_impl;
+
+template<template<class...> class L, class... T>
+struct mp_clear_impl<L<T...> >
+{
+  using type = L<>;
+};
+
+template<class L> using mp_clear = typename mp_clear_impl<L>::type;
+
+
+// mp_front
+template<class L> struct mp_front_impl;
+
+template<template<class...> class L, class T1, class... T>
+struct mp_front_impl<L<T1, T...> >
+{
+  using type = T1;
+};
+
+template<class L> using mp_front = typename mp_front_impl<L>::type;
+
+
+// mp_pop_front
+template<class L> struct mp_pop_front_impl;
+
+template<template<class...> class L>
+struct mp_pop_front_impl<L<> >
+{
+  using type = mp_void;
+};
+
+template<template<class...> class L, class T1, class... T>
+struct mp_pop_front_impl<L<T1, T...> >
+{
+  using type = L<T...>;
+};
+
+template<class L> using mp_pop_front = typename mp_pop_front_impl<L>::type;
 
 
 // mp_push_front
@@ -136,27 +322,24 @@ struct mp_transform_impl<F, L1<T1...>, L2<T2...>>
 
 // mp_transform (v2)
 /*
-mp_true — an alias for std::integral_constant<bool, true>
-mp_false — an alias for std::integral_constant<bool, false>
-mp_empty<L...> — returns mp_true if all lists are empty, mp_false otherwise
-mp_clear<L> — returns an empty list of the same type as L
-mp_front<L> — returns the first element of L
-mp_pop_front<L> — returns L without its first element
 template<template<class...> class F, class E, class... L>
-    struct mp_transform_impl;
+struct mp_transform_impl;
+
 template<template<class...> class F, class... L>
-    using mp_transform = typename mp_transform_impl<F, mp_empty<L...>, L...>::type;
+using mp_transform = typename mp_transform_impl<F, mp_empty<L...>, L...>::type;
+
 template<template<class...> class F, class L1, class... L>
-    struct mp_transform_impl<F, mp_true, L1, L...>
+struct mp_transform_impl<F, mp_true, L1, L...>
 {
-    using type = mp_clear<L1>;
+  using type = mp_clear<L1>;
 };
+
 template<template<class...> class F, class... L>
-    struct mp_transform_impl<F, mp_false, L...>
+struct mp_transform_impl<F, mp_false, L...>
 {
-    using _first = F< typename mp_front_impl<L>::type... >;
-    using _rest = mp_transform< F, typename mp_pop_front_impl<L>::type... >;
-    using type = mp_push_front<_rest, _first>;
+  using _first = F<mp_front<L>...>;
+  using _rest = mp_transform<F, mp_pop_front<L>...>;
+  using type = mp_push_front<_rest, _first>;
 };
 */
 
@@ -191,6 +374,7 @@ template<std::size_t N> using mp_iota_v = mp_from_sequence<std::make_index_seque
 
 
 // mp_append
+/*
 template<class... L> struct mp_append_impl;
 
 template<class... L> using mp_append = typename mp_append_impl<L...>::type;
@@ -211,6 +395,8 @@ struct mp_append_impl<L1<T1...>, L2<T2...>, Lr...>
 {
   using type = mp_append<L1<T1..., T2...>, Lr...>;
 };
+*/
+template<class... L> using mp_append = brigand::append<L...>;
 
 
 // mp_sequence
@@ -221,10 +407,10 @@ template<class L> using mp_sequence = mp_iota<mp_size<L>>;
 template<class R, class...Is, class... Js, class Tp>
 R mp_tuple_cat_impl(mp_list<Is...>, mp_list<Js...>, Tp tp)
 {
-  return R{std::get<Js::value>(std::get<Is::value>(tp))...};
+  return R{mp_get_v<Js::value>(mp_get_v<Is::value>(tp))...};
 }
 
-template<class... Tp, class R = mp_append<std::tuple<>, typename std::decay<Tp>::type...> >
+template<class... Tp, class R = mp_append<mp_tuple<>, typename std::decay<Tp>::type...> >
 R mp_tuple_cat(Tp &&... tp)
 {
   std::size_t const N = sizeof...(Tp);
@@ -240,7 +426,7 @@ R mp_tuple_cat(Tp &&... tp)
   using list4 = mp_transform<mp_sequence, list1>;
   // concatenate lists in list4
   using outer = mp_apply<mp_append, list4>;
-  return mp_tuple_cat_impl<R>(inner(), outer(), std::forward_as_tuple(std::forward<Tp>(tp)...));
+  return mp_tuple_cat_impl<R>(inner(), outer(), mp_tuple<Tp...>(std::forward<Tp>(tp)...));
 }
 
 
@@ -316,51 +502,6 @@ template<class C, class T, class E>
 using mp_if = typename mp_if_c_impl<C::value != 0, T, E>::type;
 
 
-// mp_unique
-template<class L> struct mp_unique_impl;
-
-template<class L> using mp_unique = typename mp_unique_impl<L>::type;
-
-template<template<class...> class L> struct mp_unique_impl<L<>>
-{
-  using type = L<>;
-};
-
-template<template<class...> class L, class T1, class... T>
-struct mp_unique_impl<L<T1, T...>>
-{
-  using _tail = mp_unique<L<T...>>;
-
-  // FIX special hard coded condition...
-  static bool constexpr _uniq = std::remove_pointer_t<T1>::is_unique;
-
-  static bool constexpr _find = mp_contains<_tail, T1>::value;
-  static bool constexpr _cond = (!_uniq) && _find;
-  using type = mp_if_c<_cond, _tail, mp_push_front<_tail, T1>>;
-};
-
-
-// mp_reverse
-template<class L>
-struct mp_reverse_impl;
-
-template<template<class...> class L>
-struct mp_reverse_impl<L<>>
-{
-  using type = L<>;
-};
-
-template<template<class...> class L, typename T1, typename... T>
-struct mp_reverse_impl<L<T1, T...>>
-{
-  using _head = L<T1>;
-  using _tail = typename mp_reverse_impl<L<T...> >::type;
-  using type = mp_append<_tail, _head>;
-};
-
-template<class L> using mp_reverse = typename mp_reverse_impl<L>::type;
-
-
 // mp_find
 template<int I, typename T, typename L>
 struct mp_find_impl;
@@ -385,7 +526,6 @@ struct mp_find_impl<I, T, L<U, Ts...> >
 template<class T, class L> using mp_find = mp_find_impl<mp_size<L>::value, T, L>;
 
 
-
 // mp_repeat_c
 template<std::size_t N, class... T> struct mp_repeat_c_impl
 {
@@ -407,6 +547,18 @@ template<class... T> struct mp_repeat_c_impl<1, T...>
 
 template<std::size_t N, class... T> using mp_repeat_c =
   typename mp_repeat_c_impl<N, T...>::type;
+
+
+// mp_first
+template<class L> struct mp_first_impl;
+
+template<template<class...> class L, class T1, class... T>
+struct mp_first_impl<L<T1, T...> >
+{
+  using type = T1;
+};
+
+template<class L> using mp_first = typename mp_first_impl<L>::type;
 
 
 // mp_second
@@ -458,7 +610,21 @@ template<class L> using mp_map_from_list =
   typename mp_map_from_list_impl<L, std::make_index_sequence<mp_size<L>::value> >::type;
 
 
+// mp_reversed_map_from_list
+template<class L, class S> struct mp_reversed_map_from_list_impl;
+
+template<template<class...> class L, class... T, std::size_t... J>
+struct mp_reversed_map_from_list_impl<L<T...>, std::integer_sequence<std::size_t, J...> >
+{
+  using type = mp_list<mp_list<T, mp_size_t<J> >...>;
+};
+
+template<class L> using mp_reversed_map_from_list =
+  typename mp_reversed_map_from_list_impl<L, std::make_index_sequence<mp_size<L>::value> >::type;
+
+
 // mp_at
+/*
 template<class L, std::size_t I> struct mp_at_c_impl
 {
   using map = mp_map_from_list<L>;
@@ -468,10 +634,14 @@ template<class L, std::size_t I> struct mp_at_c_impl
 template<class L, std::size_t I> using mp_at_c = typename mp_at_c_impl<L, I>::type;
 
 template<class L, class I> using mp_at = typename mp_at_c_impl<L, I::value>::type;
+*/
+template<class L, std::size_t I> using mp_at_c = brigand::at_c<L, I>;
+
+template<class L, class I> using mp_at = brigand::at<L, I>;
 
 
-/*
 // mp_at (standard version)
+/*
 template<class L, class L2> struct mp_at_c_impl;
 
 template<template<class...> class L, class... T,
@@ -510,46 +680,123 @@ template<class L, std::size_t N> using mp_drop_c =
 template<class L, class N> using mp_drop = mp_drop_c<L, N::value>;
 
 
+#endif // _mp_functions_basic_h_
+
+
+
+
+// -*- C++ -*-
+
+#ifndef _mp_functions_extended_h_
+#define _mp_functions_extended_h_
+
+
+// mp_type_of
+template<class T> struct mp_type_of
+{
+  using type = typename T::type;
+};
+
+template<class T> using mp_type_of_t = typename mp_type_of<T>::type;
+
+
+// mp_sizeof
+template<class T> struct mp_sizeof
+{
+  using type = std::integral_constant<std::size_t, sizeof(T)>;
+};
+
+template<class T> using mp_sizeof_t = typename mp_sizeof<T>::type;
+
+
+// mp_reverse
+/*
+template<class L>
+struct mp_reverse_impl;
+
+template<template<class...> class L>
+struct mp_reverse_impl<L<>>
+{
+  using type = L<>;
+};
+
+template<template<class...> class L, typename T1, typename... T>
+struct mp_reverse_impl<L<T1, T...>>
+{
+  using _head = L<T1>;
+  using _tail = typename mp_reverse_impl<L<T...> >::type;
+  using type = mp_append<_tail, _head>;
+};
+
+template<class L> using mp_reverse = typename mp_reverse_impl<L>::type;
+*/
+template<class L> using mp_reverse = brigand::reverse<L>;
+
+
 // mp_get
 template<std::size_t N, class T, class... Args>
 struct mp_get_impl
 {
-    static constexpr auto value = N;
+  static constexpr auto value = N;
 };
 
 template<std::size_t N, class T, class... Args>
 struct mp_get_impl<N, T, T, Args...>
 {
-    static constexpr auto value = N;
+  static constexpr auto value = N;
 };
 
 template<std::size_t N, class T, class U, class... Args>
 struct mp_get_impl<N, T, U, Args...>
 {
-    static constexpr auto value = mp_get_impl<N + 1, T, Args...>::value;
+  static constexpr auto value = mp_get_impl<N + 1, T, Args...>::value;
 };
 
 template<class T, class... Args>
-T mp_get(const std::tuple<Args...>& t)
+T mp_get(const mp_tuple<Args...>& t)
 {
-    return std::get<mp_get_impl<0, T, Args...>::value>(t);
+  std::size_t constexpr I = mp_get_impl<0, T, Args...>::value;
+  return mp_get_v<I>(t);
 }
 
 
-// mp_stable_unique
-template<class L> using mp_stable_unique = mp_reverse<mp_unique<mp_reverse<L> > >;
-
-template<template<class...> class LR, class... TR, template<class...> class L, class... T>
-LR<TR...> mp_stable_unique_fn_impl(LR<TR...> lr, L<T...> l)
+// mp_get_left
+template<std::size_t I>
+struct mp_get_left
 {
-    return {mp_get<TR>(l)...};
-}
+  template<class T,
+           template<class...> class L0, class... T0s,
+           template<class...> class L1, class... T1s>
+  static T get(L0<T0s...> l0, L1<T1s...> l1)
+  {
+    std::size_t constexpr I0 = I;
+    return mp_get_v<I0>(l0);
+  }
+};
 
-template<template<class...> class L, class... T>
-mp_stable_unique<L<T...> > mp_stable_unique_fn(L<T...> l)
+
+// mp_get_right
+template<std::size_t I>
+struct mp_get_right
 {
-    using R = mp_stable_unique<L<T...> >;
-    return mp_stable_unique_fn_impl(R{}, l);
+  template<class T,
+           template<class...> class L0, class... T0s,
+           template<class...> class L1, class... T1s>
+  static T get(L0<T0s...> l0, L1<T1s...> l1)
+  {
+    std::size_t constexpr I0 = mp_get_impl<0, T, T1s...>::value;
+    return mp_get_v<I0>(l1);
+  }
+};
+
+
+// mp_get_pair
+template<class T, class... T0s, class... T1s>
+T mp_get_pair(mp_tuple<T0s...> t0, mp_tuple<T1s...> t1)
+{
+  std::size_t constexpr I0 = mp_get_impl<0, T, T0s...>::value;
+  std::size_t constexpr N0 = sizeof...(T0s);
+  return mp_if_c<I0 != N0, mp_get_left<I0>, mp_get_right<0> >::template get<T>(t0, t1);
 }
 
 
@@ -562,66 +809,327 @@ template<class L1, class L2> using mp_merge = typename mp_merge_impl<L1, L2>::ty
 template<template<class...> class L1, class... T1, template<class...> class L2, class... T2>
 struct mp_merge_impl<L1<T1...>, L2<T2...> >
 {
-    using type = L1<mp_append<T1, T2>... >;
+  using type = L1<mp_append<T1, T2>... >;
 };
 
 
-// mp_expand
+// mp_flatten
+/*
+template<class L>
+struct mp_flatten_impl;
+
+template<template<class...> class L, class... T>
+struct mp_flatten_impl<L<T...> >
+{
+  using type = mp_append<T...>;
+};
+
+template<class L> using mp_flatten = typename mp_flatten_impl<L>::type;
+*/
+template<class L> using mp_flatten = brigand::flatten<L>;
+
+
+// mp_match
+template<class T> struct mp_match { using type = T; };
+template<class T> using mp_match_t = typename mp_match<T>::type;
+
+
+// mp_find_map_key
+template<int I, typename T, typename L, typename H>
+struct mp_find_map_key_impl;
+
+template<int I, typename T, template<class...> class L, template<class...> class H, typename... HIs>
+struct mp_find_map_key_impl<I, T, L<>, H<HIs...> >
+{
+  static constexpr auto value = I;
+  using type = H<HIs...>;
+};
+
+template<int I, template<class...> class L, typename T, typename... Us, typename... Ts, template<class...> class H, typename... HIs>
+struct mp_find_map_key_impl<I, T, L<mp_tuple<mp_identity<T>, Us...>, Ts...>, H<HIs...> >
+{
+  static constexpr auto value = I - (1 + sizeof...(Ts));
+  using type = mp_append<H<HIs...>, L<mp_tuple<mp_identity<mp_match<T> >, Us...>, Ts...> >;
+};
+
+template<int I, typename T, template<class...> class L, typename U, typename... Us, typename... Ts, template<class...> class H, typename... HIs>
+struct mp_find_map_key_impl<I, T, L<mp_tuple<mp_identity<U>, Us...>, Ts...>, H<HIs...> >
+  : mp_find_map_key_impl<I, T, L<Ts...>, mp_append<H<HIs...>, L<mp_tuple<mp_identity<U>, Us...> > > >
+{};
+
+template<class T, class L> using mp_find_map_key = mp_find_map_key_impl<mp_size<L>::value, T, L, mp_list<> >;
+
+
+// mp_insert_all
+template<class S, class L> struct mp_insert_all_impl;
+
+template<class S, class L> using mp_insert_all = typename mp_insert_all_impl<S, L>::type;
+
+template<class S, template<class...> class L> struct mp_insert_all_impl<S, L<> >
+{
+  using type = S;
+};
+
+template<class S, template<class...> class L, class T1, class... T>
+struct mp_insert_all_impl<S, L<T1, T...> >
+{
+  using _S1 = brigand::insert<S, T1>;
+  using type = mp_insert_all<_S1, L<T...> >;
+};
+
+
+// mp_uniq_merge
+template<class L1, class L2>
+struct mp_uniq_merge_impl;
+
+template<class L1, class L2> using mp_uniq_merge = typename mp_uniq_merge_impl<L1, L2>::type;
+
+template<template<class...> class L1, class... T1, template<class...> class L2, class... T2>
+struct mp_uniq_merge_impl<L1<T1...>, L2<T2...> >
+{
+  using type = L1<brigand::as_list<mp_insert_all<brigand::as_set<T1>, brigand::as_set<T2> > >... >;
+};
+
+
+// mp_resize
 template<std::size_t N, class L, class T>
-struct mp_expand_impl
+struct mp_resize_lazy_impl
 {
-    static std::size_t constexpr _M = {N - mp_size<L>::value};
-    using _fill = mp_fill<mp_iota_v<_M>, T>;
-    using type = mp_append<L, _fill>;
+  using type = mp_append<L, mp_fill<mp_iota_v<N>, T> >;
 };
 
-template<std::size_t N, class L, class T> using mp_expand = typename mp_expand_impl<N, L, T>::type;
-
-
-#endif // _mp_functions_h_
-
-
-
-
-#include <iostream>
-#include <typeinfo>
-int main()
+template<std::size_t N, class L, class T>
+struct mp_resize_impl
 {
-  {
-    static_assert(std::is_same< mp_rename<std::tuple<int, float, void*>, mp_list>, mp_list<int, float, void*> >::value, "");
-    static_assert(mp_size<mp_list<int, float, void*> >::value == 3, "");
-    static_assert(mp_size<std::tuple<int, float, void*> >::value == 3, "");
-    static_assert(mp_apply<mp_length, std::tuple<int, float, void*> >::value == 3, "");
-  }
+  static std::size_t constexpr _NL = {mp_size<L>::value};
+  static std::size_t constexpr _M = {N - _NL};
+  using type = typename mp_if_c<bool(N > _NL), mp_resize_lazy_impl<_M, L, T>, mp_identity<L> >::type;
+};
 
-  {
-    using input = std::pair<std::tuple<int, float, void*>, std::tuple<int, float, void*>>;
-    using result = mp_transform<std::pair, input::first_type, input::second_type>;
-    using expected = std::tuple<std::pair<int, int>, std::pair<float, float>, std::pair<void*, void*>>;
-    static_assert(std::is_same<result, expected>::value, "");
-  }
+template<std::size_t N, class L, class T> using mp_resize = typename mp_resize_impl<N, L, T>::type;
 
-  {
-    std::tuple<int, short, long> t1;
-    std::tuple<> t2;
-    std::tuple<float, double, long double> t3;
-    std::tuple<void*, char*> t4;
-    using result = decltype(mp_tuple_cat(t1, t2, t3, t4));
-    using expected = std::tuple<int, short, long, float, double, long double, void*, char*>;
-    static_assert(std::is_same<expected, result>::value, "");
-  }
 
-  {
-    using input = std::tuple<int, short, long, short>;
-    using result = mp_unique<input>;
-    using expected = std::tuple<int, long, short>;
-    static_assert(std::is_same<expected, result>::value, "");
-  }
-
-  {  
-    using T = std::tuple<float, float, int, int, float>;
-    T t{1,2,3,4,5};
-    auto u = mp_stable_unique_fn(t);
-    std::cout << std::get<0>(u) << ", " << std::get<1>(u) << std::endl;
-  }
+// mp_select
+template<template<class...> class LR, class... TR, template<class...> class L, class... T>
+LR<TR...> mp_select_fn_impl(LR<TR...> lr, L<T...> l)
+{
+  return LR<TR...>{mp_get<TR>(l)...};
 }
+
+template<class R, class L>
+R mp_select_fn(R r, L l)
+{
+  return mp_select_fn_impl(r, l);
+}
+
+
+// mp_cumulative
+template<class L, class S>
+struct mp_cumulative_impl;
+
+template<class L, template<class _SX, _SX...> class S, class ST, ST... SVs>
+struct mp_cumulative_impl<L, S<ST, SVs...> >
+{
+  using LR = mp_reverse<L>;
+  using LC = mp_list<std::integral_constant<std::size_t, mp_apply<mp_plus, mp_drop_c<LR, SVs> >::value>...>;
+  using type = mp_reverse<LC>;
+};
+
+template<class L>
+struct mp_cumulative_entry
+{
+  static auto constexpr v = mp_size<L>::value;
+  using S = std::make_index_sequence<v>;
+  using LS = mp_transform<mp_size, L>;
+  using type = typename mp_cumulative_impl<LS, S>::type;
+};
+
+template<class L> using mp_cumulative = typename mp_cumulative_entry<L>::type;
+
+
+// mp_subgroup_find
+template<class M, class L, class C, std::size_t NI> struct mp_subgroup_find_impl;
+
+template<template<class...> class M, class L, class C, std::size_t NI>
+struct mp_subgroup_find_impl<M<>, L, C, NI>
+{
+  using type = mp_list<>;
+};
+
+template<template<class...> class M, class... Us, class L, class C, std::size_t NI>
+struct mp_subgroup_find_impl<M<mp_void, Us...>, L, C, NI>
+{
+  using _head = std::integral_constant<std::size_t, NI>;
+  using _tail = typename mp_subgroup_find_impl<M<Us...>, L, C, NI>::type;
+  using type = mp_append<mp_list<_head>, _tail>;
+};
+
+template<template<class...> class M, class U, class... Us, class L, class C, std::size_t NI>
+struct mp_subgroup_find_impl<M<U, Us...>, L, C, NI>
+{
+  auto static constexpr depth = U::value;
+  using SL = mp_at_c<L, depth>;
+
+  auto static constexpr base = mp_at_c<C, depth>::value;
+  auto static constexpr position = mp_find<U, SL>::value;
+  auto static constexpr offset = std::size_t{base + position};
+
+  using _head = std::integral_constant<std::size_t, offset>;
+  using _tail = typename mp_subgroup_find_impl<M<Us...>, L, C, NI>::type;
+  using type = mp_append<mp_list<_head>, _tail>;
+};
+
+template<class M, class L>
+struct mp_subgroup_find_entry
+{
+  static auto constexpr NI = mp_size<mp_flatten<L> >::value;
+  using LE = mp_push_front<L, mp_list<> >;
+  using C = mp_cumulative<LE>;
+  using type = typename mp_subgroup_find_impl<M, L, C, NI>::type;
+};
+
+template<class M, class L> using mp_subgroup_find = typename mp_subgroup_find_entry<M, L>::type;
+
+
+// mp_incr
+template<typename T0, typename T1>
+using mp_incr = brigand::bool_<(T0::value < T1::value)>;
+
+
+// mp_map_incr
+template<typename T0, typename T1>
+using mp_map_incr = brigand::bool_<(mp_first<T0>::value < mp_first<T1>::value)>;
+
+
+// mp_dual
+template<class L, class S, std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl;
+
+template<template<class...> class L,
+         template<class SX, SX...> class S, class ST, ST... SVs,
+         std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl<L<>, S<ST, SVs...>, I, NI, NJ>
+{
+  using type = mp_list<>;
+};
+
+template<template<class...> class L,
+         template<class SX, SX...> class S, class ST, ST SV, ST... SVs,
+         std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl<L<>, S<ST, SV, SVs...>, I, NI, NJ>
+{
+  using _head = std::integral_constant<std::size_t, NJ>;
+  using _tail = typename mp_dual_impl<L<>, S<ST, SVs...>, I + 1, NI, NJ>::type;
+  using type = mp_append<mp_list<_head>, _tail>;
+};
+
+
+template<class L, class S, std::size_t I, std::size_t NI, std::size_t NJ, std::size_t J>
+struct mp_dual_impl_valid;
+
+template<template<class...> class L, class T, class... Ts,
+         template<class _SX, _SX...> class S, class ST, ST SV, ST... SVs,
+         std::size_t I, std::size_t NI, std::size_t NJ, std::size_t J>
+struct mp_dual_impl_valid<L<T, Ts...>, S<ST, SV, SVs...>, I, NI, NJ, J>
+{
+  auto static constexpr JD = (I == J)? mp_second<T>::value: NJ;
+  using _head = std::integral_constant<std::size_t, JD>;
+
+  using _tail = typename mp_if_c<bool(I == J),
+                                 mp_dual_impl<L<Ts...>, S<ST, SVs...>, I + 1, NI, NJ>,
+                                 mp_dual_impl<L<T, Ts...>, S<ST, SVs...>, I + 1, NI, NJ>
+                                 >::type;
+
+  using type = mp_append<mp_list<_head>, _tail>;
+};
+
+
+template<class L, class S, std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl_invalid;
+
+template<template<class...> class L, class T, class... Ts,
+         template<class _SX, _SX...> class S, class ST, ST SV, ST... SVs,
+         std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl_invalid<L<T, Ts...>, S<ST, SV, SVs...>, I, NI, NJ>
+{
+  using _head = std::integral_constant<std::size_t, NJ>;
+  using _tail = typename mp_dual_impl<L<Ts...>, S<ST, SVs...>, I + 1, NI, NJ>::type;
+  using type = mp_append<mp_list<_head>, _tail>;
+};
+
+
+template<template<class...> class L, class T, class... Ts,
+         template<class _SX, _SX...> class S, class ST, ST SV, ST... SVs,
+         std::size_t I, std::size_t NI, std::size_t NJ>
+struct mp_dual_impl<L<T, Ts...>, S<ST, SV, SVs...>, I, NI, NJ>
+{
+  auto static constexpr J = mp_first<T>::value;
+
+  using type = typename mp_if_c<bool(J < NI),
+    mp_dual_impl_valid<L<T, Ts...>, S<ST, SV, SVs...>, I, NI, NJ, J>,
+    mp_dual_impl_invalid<L<T, Ts...>, S<ST, SV, SVs...>, I, NI, NJ>
+    >::type;
+};
+
+template<typename L, std::size_t NI>
+struct mp_dual_entry
+{
+  using IS = std::make_index_sequence<NI>;
+  auto static constexpr NJ = mp_size<L>::value;
+  using M = mp_reversed_map_from_list<L>;
+  using MS = brigand::sort<M, brigand::bind<mp_map_incr, brigand::_1, brigand::_2> >;
+  using D = mp_dual_impl<MS, IS, 0, NI, NJ>;
+  using type = typename D::type;
+};
+
+template<class L, std::size_t NI> using mp_dual = typename mp_dual_entry<L, NI>::type;
+
+
+// mp_swap (if L < R)
+template<class L, class R, bool swap>
+struct mp_swap_impl
+{
+  using Left = L;
+  using Right = R;
+  inline static Left left(L const &l, R const &r) { return l; }
+  inline static Right right(L const &l, R const &r) { return r; }
+};
+
+template<class L, class R>
+struct mp_swap_impl<L, R, true>
+{
+  using Left = R;
+  using Right = L;
+  inline static Left left(L const &l, R const &r) { return r; }
+  inline static Right right(L const &l, R const &r) { return l; }
+};
+
+template<class L, class R>
+struct mp_swap
+{
+  static bool constexpr _swap = mp_size<L>::value < mp_size<R>::value;
+  // static bool constexpr _swap = false;
+  using _impl = mp_swap_impl<L, R, _swap>;
+  using Left = typename _impl::Left;
+  using Right = typename _impl::Right;
+  inline static Left left(L const &l, R const &r) { return _impl::left(l, r); }
+  inline static Right right(L const &l, R const &r) { return _impl::right(l, r); }
+};
+
+
+// mp_get_if
+template<bool c, std::size_t i>
+struct mp_get_if
+{
+  template<typename L, typename T>
+  AlwaysInline inline static T &apply(L &l, T &) { return mp_get_r<i>(l); }
+};
+
+template<std::size_t i>
+struct mp_get_if<false, i>
+{
+  template<typename L, typename T>
+  AlwaysInline inline static T &apply(L &, T &nul) { return nul; }
+};
+
+#endif // _mp_functions_extended_h_
