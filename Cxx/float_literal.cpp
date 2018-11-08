@@ -1,7 +1,7 @@
 #include <iostream>
 
 /*
-  not really a float, just fixed point value presently!
+  not really a float, just fixed point
 */
 
 
@@ -34,6 +34,10 @@ template<auto H, auto L, auto E, auto I, auto N, class C>
 struct make_float;
 
 
+template<auto H, auto L, auto E, auto I, auto N, class C> using make_float_t =
+  typename make_float<H, L, E, I, N, C>::type;
+
+
 template<auto H, auto L, auto E, auto I, auto N, template<char...> class CL>
 struct make_float<H, L, E, I, N, CL<> >
 {
@@ -46,7 +50,7 @@ template<auto H, auto L, auto E, auto I, auto N, template<char...> class CL, cha
 struct make_float<H, L, E, I, N, CL<'.', Cs...> >
 {
   auto static constexpr _E = I + 1;
-  using type = typename make_float<H, L, _E, (I+1), N, CL<Cs...> >::type;
+  using type = make_float_t<H, L, _E, (I+1), N, CL<Cs...> >;
 };
 
 
@@ -54,17 +58,17 @@ struct make_float<H, L, E, I, N, CL<'.', Cs...> >
 template<auto H, auto L, auto E, auto I, auto N, template<char, char...> class CL, char C, char... Cs>
 struct make_float<H, L, E, I, N, CL<C, Cs...> >
 {
-  auto static constexpr _B = (C >= '0' && C <= '9');
-  auto static constexpr _H = (_B && E == 0)? (10 * H) + (C - '0'): H;
-  auto static constexpr _L = (_B && E > 0)?  (10 * L) + (C - '0'): L;
-  using type = typename make_float<_H, _L, E, (I+1), N, CL<Cs...> >::type;
+  auto static constexpr _D = (C >= '0' && C <= '9');
+  auto static constexpr _H = (_D && E == 0)? (10 * H) + (C - '0'): H;
+  auto static constexpr _L = (_D && E > 0)?  (10 * L) + (C - '0'): L;
+  using type = make_float_t<_H, _L, E, (I+1), N, CL<Cs...> >;
 };
 
 
 template<char... Cs>
 auto constexpr operator""_f()
 {
-  return typename make_float<0, 0, 0, 0, sizeof...(Cs), mp_chars<Cs...> >::type{};
+  return make_float_t<0, 0, 0, 0, sizeof...(Cs), mp_chars<Cs...> >{};
 }
 
 
@@ -84,6 +88,7 @@ auto constexpr operator+(_float<H, L, E>)
 
 int main()
 {
-  auto constexpr v = -2.103_f;
-  std::cout << v << std::endl;
+  auto constexpr v = -4.2_f;
+  float constexpr w = 2 * v;
+  std::cout << w << std::endl;
 }
