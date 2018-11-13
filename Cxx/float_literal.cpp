@@ -84,7 +84,7 @@ auto constexpr make_float_fn(CL<C, Cs...> cl)
     auto constexpr _D = (C >= '0' && C <= '9');
     auto constexpr _H = (_D && E == 0)? (10 * H) + (C - '0'): H;
     auto constexpr _L = (_D && E > 0)?  (10 * L) + (C - '0'): L;
-    return make_float_fn<_H, L, E, (I+1), N>(CL<Cs...>{});
+    return make_float_fn<_H, _L, E, (I+1), N>(CL<Cs...>{});
   }
 }
 
