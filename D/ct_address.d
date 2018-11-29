@@ -1,3 +1,5 @@
+// at: https://run.dlang.io/is/rf5azp
+
 auto cmp(T, U)(const ref T t, const ref U u)
 {
   return &t == &u;
