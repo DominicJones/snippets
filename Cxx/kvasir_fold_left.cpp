@@ -26,7 +26,7 @@ namespace kvasir {
 
 
 
-// #include <kvasir/mpl/compatability/dependent_call.hpp>
+// #include <kvasir/mpl/compatability/dependant_call.hpp>
 namespace kvasir {
   namespace mpl {
     namespace detail {
