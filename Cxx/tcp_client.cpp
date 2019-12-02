@@ -6,9 +6,45 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <getopt.h>
 
-int main(int argc, char const *argv[])
+#include <iostream>
+
+
+int port = 8080; // default port
+
+void get_optional_args(int argc, char** argv)
 {
+  const char* const short_opts = "p";
+  const option long_opts[] = {
+    {"port", required_argument, nullptr, 'p'},
+    {nullptr, no_argument, nullptr, 0}
+  };
+
+  while (true)
+  {
+    const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+    if (opt == -1)
+      break;
+
+    switch (opt)
+    {
+    case 'p':
+      port = std::stoi(optarg);
+      break;
+
+    default:
+      break;
+    }
+  }
+}
+
+
+int main(int argc, char** argv)
+{
+  get_optional_args(argc, argv);
+  std::cout << "Using port: " << port << std::endl;
+
   int cs_socket = 0;
   struct sockaddr_in serv_addr;
 
@@ -19,7 +55,6 @@ int main(int argc, char const *argv[])
   }
 
   {
-    int port = 8080;
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
   }
