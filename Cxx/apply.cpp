@@ -1,3 +1,6 @@
+// from:
+//   https://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
+
 #include <cstddef>
 #include <tuple>
 #include <type_traits>
