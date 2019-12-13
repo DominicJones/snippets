@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <utility>
 #include <type_traits>
 #include <functional>
@@ -26,6 +28,7 @@ struct Wrapper
 {
   using TM = PropagateReference_const_t<T>;
   Wrapper(T &&v) : _v(static_cast<T &&>(v)) {}
+  T const &member() { return _v; }
   TM const _v;
 };
 
@@ -37,14 +40,17 @@ Wrapper<T> makeWrapper(T &&v)
 }
 
 
-struct Term {};
+struct Term { float value; };
 
 
 int main()
 {
-  Term const v;
+  Term const v{4};
   auto wr = makeWrapper(v);
-  auto wc = makeWrapper(Term{});
+  auto wc = makeWrapper(Term{8});
+
+  std::cout << wr.member().value << std::endl;
+  std::cout << wc.member().value << std::endl;
 
   using WR = decltype(wr);
   using WC = decltype(wc);
