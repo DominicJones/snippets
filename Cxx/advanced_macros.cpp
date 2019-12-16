@@ -4,50 +4,50 @@
 
 // Basic utilities
 
-#define EMPTY()
-#define DEFER1(m) m EMPTY()
-#define DEFER2(m) m EMPTY EMPTY()()
+#define CPP_EMPTY()
+#define CPP_DEFER1(m) m CPP_EMPTY()
+#define CPP_DEFER2(m) m CPP_EMPTY CPP_EMPTY()()
 
-#define CAT(a,b) a ## b
-#define FIRST(a, ...) a
-#define SECOND(a, b, ...) b
+#define CPP_CAT(a,b) a ## b
+#define CPP_FIRST(a, ...) a
+#define CPP_SECOND(a, b, ...) b
 
-#define EVAL(...) EVAL8(__VA_ARGS__)
-#define EVAL8(...) EVAL4(EVAL4(__VA_ARGS__))
-#define EVAL4(...) EVAL2(EVAL2(__VA_ARGS__))
-#define EVAL2(...) EVAL1(EVAL1(__VA_ARGS__))
-#define EVAL1(...) __VA_ARGS__
+#define CPP_EVAL(...) CPP_EVAL8(__VA_ARGS__)
+#define CPP_EVAL8(...) CPP_EVAL4(CPP_EVAL4(__VA_ARGS__))
+#define CPP_EVAL4(...) CPP_EVAL2(CPP_EVAL2(__VA_ARGS__))
+#define CPP_EVAL2(...) CPP_EVAL1(CPP_EVAL1(__VA_ARGS__))
+#define CPP_EVAL1(...) __VA_ARGS__
 
 // Advanced utilities
 
-#define IS_PROBE(...) SECOND(__VA_ARGS__, 0)
-#define PROBE() ~, 1
+#define CPP_IS_PROBE(...) CPP_SECOND(__VA_ARGS__, 0)
+#define CPP_PROBE() ~, 1
 
-#define NOT(x) IS_PROBE(CAT(_NOT_, x))
-#define _NOT_0 PROBE()
+#define CPP_NOT(x) CPP_IS_PROBE(CPP_CAT(_CPP_NOT_, x))
+#define _CPP_NOT_0 CPP_PROBE()
 
-#define BOOL(x) NOT(NOT(x))
+#define CPP_BOOL(x) CPP_NOT(CPP_NOT(x))
 
-#define HAS_ARGS(...) BOOL(FIRST(_END_OF_ARGUMENTS_ __VA_ARGS__)())
-#define _END_OF_ARGUMENTS_() 0
+#define CPP_HAS_ARGS(...) CPP_BOOL(CPP_FIRST(_CPP_END_OF_ARGUMENTS_ __VA_ARGS__)())
+#define _CPP_END_OF_ARGUMENTS_() 0
 
 // Conditional expansion
 
-#define IF_ELSE(condition) _IF_ELSE(BOOL(condition))
-#define _IF_ELSE(condition) CAT(_IF_, condition)
-#define _IF_1(...) __VA_ARGS__ _IF_1_ELSE
-#define _IF_0(...)             _IF_0_ELSE
-#define _IF_1_ELSE(...)
-#define _IF_0_ELSE(...) __VA_ARGS__
+#define CPP_IF_ELSE(condition) _CPP_IF_ELSE(CPP_BOOL(condition))
+#define _CPP_IF_ELSE(condition) CPP_CAT(_CPP_IF_, condition)
+#define _CPP_IF_1(...) __VA_ARGS__ _CPP_IF_1_ELSE
+#define _CPP_IF_0(...)             _CPP_IF_0_ELSE
+#define _CPP_IF_1_ELSE(...)
+#define _CPP_IF_0_ELSE(...) __VA_ARGS__
 
 // Iteration expansion
 
-#define MAP(m, first, ...)           \
+#define CPP_MAP(m, first, ...)           \
   m(first)                           \
-  IF_ELSE(HAS_ARGS(__VA_ARGS__))(    \
-    DEFER2(_MAP)()(m, __VA_ARGS__)   \
+  CPP_IF_ELSE(CPP_HAS_ARGS(__VA_ARGS__))(    \
+    CPP_DEFER2(_CPP_MAP)()(m, __VA_ARGS__)   \
   )()
-#define _MAP() MAP
+#define _CPP_MAP() CPP_MAP
 
 
 
@@ -56,13 +56,13 @@
   struct Wrapper                                \
   {                                             \
     Wrapper(T const &v) : value(v) {}           \
-    IF_ELSE(cond)(T const &)(T const) value;    \
+    CPP_IF_ELSE(cond)(T const &)(T const) value;    \
   };
 
-GenerateWrapper(BOOL(1))
+GenerateWrapper(CPP_BOOL(1))
 
-#define GenerateTags(x) struct CAT(x, _tag){};
-EVAL(MAP(GenerateTags, Arg0, Arg1))
+#define GenerateTags(x) struct CPP_CAT(x, _tag){};
+CPP_EVAL(CPP_MAP(GenerateTags, Arg0, Arg1))
 
 int main()
 {
@@ -74,29 +74,29 @@ int main()
 
 // CPP_MACROS
 
-#undef EMPTY
-#undef DEFER1
-#undef DEFER2
-#undef CAT
-#undef FIRST
-#undef SECOND
-#undef EVAL
-#undef EVAL8
-#undef EVAL4
-#undef EVAL2
-#undef EVAL1
-#undef IS_PROBE
-#undef PROBE
-#undef NOT
-#undef _NOT_0
-#undef BOOL
-#undef HAS_ARGS
-#undef _END_OF_ARGUMENTS_
-#undef IF_ELSE
-#undef _IF_ELSE
-#undef _IF_1
-#undef _IF_0
-#undef _IF_1_ELSE
-#undef _IF_0_ELSE
-#undef MAP
-#undef _MAP
+#undef CPP_EMPTY
+#undef CPP_DEFER1
+#undef CPP_DEFER2
+#undef CPP_CAT
+#undef CPP_FIRST
+#undef CPP_SECOND
+#undef CPP_EVAL
+#undef CPP_EVAL8
+#undef CPP_EVAL4
+#undef CPP_EVAL2
+#undef CPP_EVAL1
+#undef CPP_IS_PROBE
+#undef CPP_PROBE
+#undef CPP_NOT
+#undef _CPP_NOT_0
+#undef CPP_BOOL
+#undef CPP_HAS_ARGS
+#undef _CPP_END_OF_ARGUMENTS_
+#undef CPP_IF_ELSE
+#undef _CPP_IF_ELSE
+#undef _CPP_IF_1
+#undef _CPP_IF_0
+#undef _CPP_IF_1_ELSE
+#undef _CPP_IF_0_ELSE
+#undef CPP_MAP
+#undef _CPP_MAP
