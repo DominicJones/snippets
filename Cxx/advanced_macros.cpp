@@ -1,3 +1,5 @@
+// based on: http://jhnet.co.uk/articles/cpp_magic
+
 // CPP_MACROS
 
 // Basic utilities
