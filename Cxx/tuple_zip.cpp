@@ -3,52 +3,88 @@
 #include <type_traits>
 #include <functional>
 #include <iostream>
-
+#include <cstring>
 
 
 template<std::size_t... I>
-constexpr auto tuple_zip_cref_ref_impl(std::index_sequence<I...>, auto u, auto v) noexcept
+inline constexpr auto make_cref_tuple_impl(std::index_sequence<I...>, auto const &tp) noexcept
+{
+  return std::make_tuple(std::cref(std::get<I>(tp))...);
+}
+
+template<typename... T>
+inline constexpr auto make_cref_tuple(std::tuple<T...> const &tp) noexcept
+{
+  return make_cref_tuple_impl(std::make_index_sequence<sizeof...(T)>(), tp);
+}
+
+
+template<std::size_t... I>
+inline constexpr auto make_ref_tuple_impl(std::index_sequence<I...>, auto &tp) noexcept
+{
+  return std::make_tuple(std::ref(std::get<I>(tp))...);
+}
+
+template<typename... T>
+inline constexpr auto make_ref_tuple(std::tuple<T...> &tp) noexcept
+{
+  return make_ref_tuple_impl(std::make_index_sequence<sizeof...(T)>(), tp);
+}
+
+
+template<std::size_t... I>
+inline constexpr auto tuple_zip_cref_ref_impl(std::index_sequence<I...>, auto u, auto v) noexcept
 {
   return std::tuple_cat(std::make_tuple(std::cref(std::get<I>(u)), std::ref(std::get<I>(v)))...);
 }
 
 template<typename... U, typename... V>
-constexpr auto tuple_zip_cref_ref(std::tuple<U...> u, std::tuple<V...> v) noexcept
+inline constexpr auto tuple_zip_cref_ref(std::tuple<U...> u, std::tuple<V...> v) noexcept
 {
   return tuple_zip_cref_ref_impl(std::make_index_sequence<sizeof...(U)>(), u, v);
 }
 
 
-auto summate(int const &i, long &l, float const &f, double &d)
+void multiply(int const &a, long &a_drv, float const &b, double &b_drv, double rhs)
 {
-  return i + l + f + d;
+  a_drv += b * rhs;
+  b_drv += a * rhs;
 }
 
 template<std::size_t... I>
-auto eval_summate_impl(std::index_sequence<I...>, auto u)
+void multiply_impl(std::index_sequence<I...>, auto args, double rhs)
 {
-  return summate(std::get<I>(u)...);
+  multiply(std::get<I>(args)..., rhs);
 }
 
-template<typename... U>
-auto eval_summate(std::tuple<U...> u)
+template<typename... T>
+void multiply(std::tuple<T...> args, double rhs)
 {
-  return eval_summate_impl(std::make_index_sequence<sizeof...(U)>(), u);
+  multiply_impl(std::make_index_sequence<sizeof...(T)>{}, args, rhs);
 }
 
 
 int main()
 {
-  int i = 1;
-  float f = 20;
-  std::tuple<int const &, float const &> t1{i, f};
+  auto aa = std::make_tuple(int{1}, float{20});
+  auto aa_cref = make_cref_tuple(aa);
 
-  long l = 300;
-  double d = 4000;
-  std::tuple<long &, double &> t2{l, d};
-  std::cout << eval_summate(tuple_zip_cref_ref(t1, t2)) << std::endl;
+  std::get<0>(aa) += 1;
+  std::cout << std::get<0>(aa_cref) << std::endl;
 
-  l += l;
-  d += d;
-  std::cout << eval_summate(tuple_zip_cref_ref(t1, t2)) << std::endl;
+  auto aa_drv = std::make_tuple(long{300}, double{4000});
+  auto aa_drv_ref = make_ref_tuple(aa_drv);
+
+  std::get<0>(aa_drv) += 1;
+  std::cout << std::get<0>(aa_drv_ref) << std::endl;
+
+  std::get<0>(aa_drv_ref) += 1;
+  std::cout << std::get<0>(aa_drv_ref) << std::endl;
+
+
+  std::memset(&aa_drv, 0, sizeof(aa_drv));
+  auto aa_zip = tuple_zip_cref_ref(aa_cref, aa_drv_ref);
+  multiply(aa_zip, double{1});
+  std::cout << std::get<0>(aa_drv) << std::endl;
+  std::cout << std::get<1>(aa_drv) << std::endl;
 }
