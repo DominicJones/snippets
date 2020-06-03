@@ -35,3 +35,17 @@ struct DifferentiableVariable : public Variable
     : Variable(std::bind(&differentiableStorageTagFn, getScopedPrefix(mode), std::placeholders::_1))
   {}
 };
+
+
+struct Pressure
+{
+  auto getClassName() const { return "Pressure"; }
+};
+
+
+int main()
+{
+  auto v = DifferentiableVariable(DrvMode::TANGENT);
+  auto s = v.getStorageTagFn()(Pressure().getClassName());
+  std::cout << s << std::endl; // TangentDrv::Pressure
+}
