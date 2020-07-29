@@ -19,9 +19,9 @@ void vector_add_cpu(int *a, int *b, int *c, int n)
 
 __global__ void vector_add_gpu(int *gpu_a, int *gpu_b, int *gpu_c, int n)
 {
-    int i = threadIdx.x;
     // No for loop needed because the CUDA runtime
     // will thread this ITER times
+    int i = threadIdx.x;
     gpu_c[i] = gpu_a[i] + gpu_b[i];
 }
 
