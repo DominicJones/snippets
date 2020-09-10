@@ -1,0 +1,37 @@
+commit 8f8c34300bad74e24f5aa53eb25e8ac64bb21e11
+Author: Louis Dionne <ldionne.2@gmail.com>
+Date:   Sun Nov 29 16:36:09 2015 -0500
+
+    Implement std::tuple_element with a compiler builtin
+
+diff --git a/include/__tuple b/include/__tuple
+index 53afb18..d33459a 100644
+--- a/include/__tuple
++++ b/include/__tuple
+@@ -236,6 +236,17 @@ public:
+     static_assert(_Ip != 0, "tuple_element index out of range");
+ };
+ 
++#if __has_builtin(__type_pack_element)
++
++template <size_t _Ip, class _Hp, class ..._Tp>
++class _LIBCPP_TYPE_VIS_ONLY tuple_element<_Ip, __tuple_types<_Hp, _Tp...> >
++{
++public:
++    typedef __type_pack_element<_Ip, _Hp, _Tp...> type;
++};
++
++#else
++
+ template <class _Hp, class ..._Tp>
+ class _LIBCPP_TYPE_VIS_ONLY tuple_element<0, __tuple_types<_Hp, _Tp...> >
+ {
+@@ -250,6 +261,8 @@ public:
+     typedef typename tuple_element<_Ip-1, __tuple_types<_Tp...> >::type type;
+ };
+ 
++#endif // !__has_builtin(__type_pack_element)
++
+ template <class ..._Tp>
+ class _LIBCPP_TYPE_VIS_ONLY tuple_size<__tuple_types<_Tp...> >
+     : public integral_constant<size_t, sizeof...(_Tp)>
