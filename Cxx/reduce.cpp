@@ -1,6 +1,18 @@
 #include <iostream>
 #include <array>
 
+/*
+void reduce(...)
+{
+  Drv<mode, double> y0{y, y_drv};
+  for (int i = 0; i != n; ++i)
+  {
+    Drv<mode, double&> y1{y0.mutate()};
+    y1 += x[i];
+  }
+}
+*/
+    
 auto reduce(int n, double * x) {
     double y{0};
     for (int i = 0; i != n; ++i) {
