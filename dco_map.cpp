@@ -28,7 +28,7 @@ void foo(int n, Active const x[], Active &y)
 
   MAP_CALL(Active, bar(a, b, c));
 
-  MAP_IF(Active , b < c) {
+  MAP_IF(Active, b < c) {
     d = exp(a) * b;
   } MAP_ELSE {
     d = c * cos(b - a);
