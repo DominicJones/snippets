@@ -5,6 +5,7 @@
   http://sunsite.informatik.rwth-aachen.de/Publications/AIB/2017/2017-07.pdf
 */
 
+
 // example 1
 
 template<class Active>
@@ -23,6 +24,8 @@ int main()
   Active y1;
   dco_map::derivative(y1) = 1;
   foo(x1 , x2 , y1);
+  printf("adjoint of x1 = %f \n", dco_map::derivative(x1));
+  printf("adjoint of x2 = %f \n", dco_map::derivative(x2));
 }
 
 
@@ -39,7 +42,7 @@ void bar(int n, Active const x[], Active &y)
   } MAP_FOR_END;
 
   Active c;
-  MAP_CALL(Active, baz(a, b, c));
+  MAP_CALL(Active, baz(a, b, c)); // in: [a,b], out: [c]
 
   Active d;
   MAP_IF(Active, b < c) {
@@ -48,5 +51,5 @@ void bar(int n, Active const x[], Active &y)
     d = c * cos(b - a);
   } MAP_IF_END;
 
-  y = d * c * b * a;
+  y = a * b * c * d;
 }
