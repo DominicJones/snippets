@@ -6,6 +6,7 @@ void foo(Active const &x1, Active const &x2, Active &y)
   y = b * exp(a);
 }
 
+int main()
 {
   usign Active = dco_map::ga1s<double>::type;
   Active x1 = 3, x2 = 17;
@@ -16,7 +17,7 @@ void foo(Active const &x1, Active const &x2, Active &y)
 
 
 template<class Active>
-void foo(int n, Active const x[], Active &y)
+void bar(int n, Active const x[], Active &y)
 {
   Active a, b(0), c, d;
 
