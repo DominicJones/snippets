@@ -38,7 +38,8 @@ void bar(int n, Active const x[], Active &y)
 
   Active b = 0;
   MAP_FOR(Active, i, 2, n-1, 1) {
-    b += x[i];
+    const auto x2 = x[i] * x[i];
+    b += sin((i + 1) * x2);
   } MAP_FOR_END;
 
   Active c;
