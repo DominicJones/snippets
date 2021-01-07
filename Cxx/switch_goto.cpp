@@ -1,64 +1,71 @@
 #include <iostream>
+#include <utility>
+#include <cassert>
 
-int const tangent =  1;
-int const adjoint = -1;
 
-double x = 2, x_drv;
-double y = 3, y_drv;
-double z = 5, z_drv;
-double f, f_drv;
+struct DrvMode { enum Option : int { PRIMAL = 1, TANGENT, ADJOINT, }; };
 
-void eval(int mode)
-{
-  int const nb_cases = 2;
-  int case_id = (nb_cases * (1 - mode)) / 2;
 
-  double w1_drv(0);
-  double const w1 = x * y;
+#define DrvBlockSequence_init(mode, size, block)        \
+  auto block{(mode == DrvMode::ADJOINT) ?               \
+      std::make_pair((size - 1), size) :                \
+      std::make_pair(0, size)};
 
-  double w2_drv(0);
-  double const w2 = y * z;
 
-  f = w1 + w2;
+#define DrvBlockSequence_begin(mode, start, block)      \
+  start: switch (block.first) {                         \
+    case 0:                                             \
+    {
 
- start: switch (case_id) {
-  case 0:
-    if (mode == tangent) {
-      w1_drv = x_drv * y + x * y_drv;
-    } else if (mode == adjoint) {
-      x_drv += y * w1_drv;
-      y_drv += x * w1_drv;
-    }
-    case_id += mode; goto start;
-  case 1:
-    if (mode == tangent) {
-      w2_drv = y_drv * z + y * z_drv;
-    } else if (mode == adjoint) {
-      y_drv += z * w2_drv;
-      z_drv += y * w2_drv;
-    }
-    case_id += mode; goto start;
-  case 2:
-    if (mode == tangent) {
-      f_drv = w1_drv + w2_drv;
-    } else if (mode == adjoint) {
-      w1_drv += f_drv;
-      w2_drv += f_drv;
-    }
-    case_id += mode; goto start;
-  default:
-    break;
+
+#define DrvBlockSequence_next(mode, start, block, index)        \
+    }                                                           \
+    (mode == DrvMode::ADJOINT) ? block.first-- : block.first++; \
+    goto start;                                                 \
+  case index:                                                   \
+    {
+
+
+#define DrvBlockSequence_end(mode, start, block)                \
+    }                                                           \
+    (mode == DrvMode::ADJOINT) ? block.first-- : block.first++; \
+    goto start;                                                 \
+  default:                                                      \
+    if (mode == DrvMode::ADJOINT)                               \
+      assert(block.first == -1);                                \
+    else                                                        \
+      assert(block.first == block.second);                      \
+    break;                                                      \
   }
+
+
+
+void eval(DrvMode::Option mode)
+{
+  DrvBlockSequence_init(mode, 4, block);
+
+  DrvBlockSequence_begin(mode, start, block)
+  {
+    std::cout << "block " << block.first << std::endl;
+  }
+  DrvBlockSequence_next(mode, start, block, 1)
+  {
+    std::cout << "block " << block.first << std::endl;
+  }
+  DrvBlockSequence_next(mode, start, block, 2)
+  {
+    std::cout << "block " << block.first << std::endl;
+  }
+  DrvBlockSequence_next(mode, start, block, 3)
+  {
+    std::cout << "block " << block.first << std::endl;
+  }
+  DrvBlockSequence_end(mode, start, block);
 }
+
 
 int main()
 {
-  x_drv = 1; y_drv = 0; z_drv = 0;
-  eval(tangent);
-  std::cout << f_drv << std::endl;
-
-  f_drv = 1;
-  x_drv = y_drv = z_drv = 0;
-  eval(adjoint);
-  std::cout << x_drv << std::endl;
+  eval(DrvMode::TANGENT);
+  eval(DrvMode::ADJOINT);
 }
