@@ -1,66 +1,77 @@
-#include <iostream>
-#include <utility>
-#include <cassert>
+struct DrvMode { enum Option : int { PRIMAL, TANGENT, ADJOINT, }; };
 
 
-struct DrvMode { enum Option : int { PRIMAL = 1, TANGENT, ADJOINT, }; };
-
-
-#define DrvBlockSequence_init(mode, size, block)        \
-  auto block{(mode == DrvMode::ADJOINT) ?               \
-      std::make_pair((size - 1), size) :                \
-      std::make_pair(0, size)};
-
-
-#define DrvBlockSequence_begin(mode, start, block)      \
-  start: switch (block.first) {                         \
-    case 0:                                             \
+#define DrvSequence_begin(mode)                             \
+  {                                                         \
+    auto constexpr DrvSequence_offset{__COUNTER__};         \
+    auto const DrvSequence_mode{mode};                      \
+    auto DrvSequence_case{int(0)};                          \
+    if (mode == DrvMode::ADJOINT)                           \
+    {                                                       \
+      goto DrvSequence_end_label;                           \
+    }                                                       \
+    DrvSequence_begin_label:                                \
+    switch (DrvSequence_case) {                             \
+    case 0:                                                 \
     {
 
 
-#define DrvBlockSequence_next(mode, start, block, index)        \
-    }                                                           \
-    (mode == DrvMode::ADJOINT) ? block.first-- : block.first++; \
-    goto start;                                                 \
-  case index:                                                   \
+#define DrvSequence_next()                                  \
+    }                                                       \
+    (DrvSequence_mode == DrvMode::ADJOINT) ?                \
+      DrvSequence_case-- :                                  \
+      DrvSequence_case++;                                   \
+    goto DrvSequence_begin_label;                           \
+    case (__COUNTER__ - DrvSequence_offset):                \
     {
 
 
-#define DrvBlockSequence_end(mode, start, block)                \
-    }                                                           \
-    (mode == DrvMode::ADJOINT) ? block.first-- : block.first++; \
-    goto start;                                                 \
-  default:                                                      \
-    if (mode == DrvMode::ADJOINT)                               \
-      assert(block.first == -1);                                \
-    else                                                        \
-      assert(block.first == block.second);                      \
-    break;                                                      \
+#define DrvSequence_end()                                      \
+    }                                                          \
+    (DrvSequence_mode == DrvMode::ADJOINT) ?                   \
+      DrvSequence_case-- :                                     \
+      DrvSequence_case++;                                      \
+    goto DrvSequence_begin_label;                              \
+    DrvSequence_end_label:                                     \
+    default:                                                   \
+    {                                                          \
+      auto constexpr size{__COUNTER__ - DrvSequence_offset};   \
+      if (DrvSequence_mode == DrvMode::ADJOINT)                \
+      {                                                        \
+        if (DrvSequence_case >= 0)                             \
+        {                                                      \
+          DrvSequence_case = size - 1;                         \
+          goto DrvSequence_begin_label;                        \
+        }                                                      \
+      }                                                        \
+    }                                                          \
+    break;                                                     \
+    }                                                          \
   }
 
+
+#include <iostream>
 
 
 void eval(DrvMode::Option mode)
 {
-  DrvBlockSequence_init(mode, 4, block);
-
-  DrvBlockSequence_begin(mode, start, block)
+  DrvSequence_begin(mode)
   {
-    std::cout << "block " << block.first << std::endl;
+    std::cout << "0" << std::endl;
   }
-  DrvBlockSequence_next(mode, start, block, 1)
+  DrvSequence_next()
   {
-    std::cout << "block " << block.first << std::endl;
+    std::cout << "1" << std::endl;
   }
-  DrvBlockSequence_next(mode, start, block, 2)
+  DrvSequence_next()
   {
-    std::cout << "block " << block.first << std::endl;
+    std::cout << "2" << std::endl;
   }
-  DrvBlockSequence_next(mode, start, block, 3)
+  DrvSequence_next()
   {
-    std::cout << "block " << block.first << std::endl;
+    std::cout << "3" << std::endl;
   }
-  DrvBlockSequence_end(mode, start, block);
+  DrvSequence_end();
 }
 
 
