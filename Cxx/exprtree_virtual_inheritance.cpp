@@ -210,7 +210,7 @@ int main()
 
     Binary<Mul, decltype(a), decltype(b)> t{a, b};
     Binary<Add, decltype(t), double>      u{t, c0};
-    Binary<Add, decltype(t), double>      v{t, c1}; // `Add' causes compilation error: duplicate base type <X> invalid
+    Binary<Sub, decltype(t), double>      v{t, c1}; // `Add' causes compilation error: duplicate base type <X> invalid
     Binary<Div, decltype(u), decltype(v)> w{u, v};
 
     // primal
