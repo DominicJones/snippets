@@ -1,157 +1,185 @@
 struct Add
 {
-  static double eval(double a, double b) { return a + b; }
-  static void diff(double a, double &ad, double b, double &bd, double rd) { ad += rd; bd += rd; }
+  static double primal(double a, double b) { return a + b; }
+  static void adjoint(double a, double &ad, double b, double &bd, double rd)
+  { ad += rd; bd += rd; }
 };
 
 struct Sub
 {
-  static double eval(double a, double b) { return a - b; }
-  static void diff(double a, double &ad, double b, double &bd, double rd) { ad += rd; bd -= rd; }
+  static double primal(double a, double b) { return a - b; }
+  static void adjoint(double a, double &ad, double b, double &bd, double rd)
+  { ad += rd; bd -= rd; }
 };
 
 struct Mul
 {
-  static double eval(double a, double b) { return a * b; }
-  static void diff(double a, double &ad, double b, double &bd, double rd) { ad += b * rd; bd += a * rd; }
+  static double primal(double a, double b) { return a * b; }
+  static void adjoint(double a, double &ad, double b, double &bd, double rd)
+  { ad += b * rd; bd += a * rd; }
 };
 
 struct Div
 {
-  static double eval(double a, double b) { return a / b; }
-  static void diff(double a, double &ad, double b, double &bd, double rd) { ad += rd / b; bd -= (a * rd) / (b * b); }
+  static double primal(double a, double b) { return a / b; }
+  static void adjoint(double a, double &ad, double b, double &bd, double rd)
+  { ad += rd / b; bd -= (a * rd) / (b * b); }
 };
 
 
 
 
-template<typename T>
+template<typename Tag>
 struct Terminal
 {
-  Terminal(double const &v)
+  Terminal(double const &pri)
   {
-    this->v = v;
-    this->d = 0;
+    this->pri = pri;
+    this->adj = 0;
   }
 
   Terminal() {}
 
-  void eval() const {}
+  void primal() const {}
 
-  void diff() const {}
+  void adjoint() const {}
 
-  static double v;
-  static double d;
+  static double pri;
+  static double adj;
 };
 
-template<typename T>
-double Terminal<T>::v = 0;
+template<typename Tag>
+double Terminal<Tag>::pri = 0;
 
-template<typename T>
-double Terminal<T>::d = 0;
-
-
+template<typename Tag>
+double Terminal<Tag>::adj = 0;
 
 
-template<typename OP, typename L, typename R>
-struct Binary: virtual L, virtual R
+
+
+template<typename OP, typename E0, typename E1>
+struct Binary: virtual E0, virtual E1
 {
-  Binary(L const &l, R const &r)
-    : L(l), R(r)
+  Binary(E0 const &e0, E1 const &e1)
+    : E0(e0), E1(e1)
   {}
 
   Binary() {}
 
-  void eval() const
+  void primal() const
   {
-    L const &l(static_cast<L const &>(*this));
-    R const &r(static_cast<R const &>(*this));
-    l.eval();
-    r.eval();
-    this->v = OP::eval(l.v, r.v);
+    E0 const &e0(static_cast<E0 const &>(*this));
+    E1 const &e1(static_cast<E1 const &>(*this));
+    e0.primal();
+    e1.primal();
+    this->pri = OP::primal(e0.pri, e1.pri);
   }
 
-  void diff() const
+  void adjoint() const
   {
-    L const &l(static_cast<L const &>(*this));
-    R const &r(static_cast<R const &>(*this));
-    OP::diff(l.v, l.d, r.v, r.d, this->d);
+    E0 const &e0(static_cast<E0 const &>(*this));
+    E1 const &e1(static_cast<E1 const &>(*this));
+    OP::adjoint(e0.pri, e0.adj, e1.pri, e1.adj, this->adj);
   }
 
-  static double v;
-  static double d;
+  static double pri;
+  static double adj;
 };
 
-template<typename OP, typename L, typename R>
-double Binary<OP, L, R>::v = 0;
+template<typename OP, typename E0, typename E1>
+double Binary<OP, E0, E1>::pri = 0;
 
-template<typename OP, typename L, typename R>
-double Binary<OP, L, R>::d = 0;
-
-
+template<typename OP, typename E0, typename E1>
+double Binary<OP, E0, E1>::adj = 0;
 
 
-template<typename OP, typename L>
-struct Binary<OP, L, double>: virtual L
+
+
+template<typename OP, typename E0>
+struct Binary<OP, E0, double>: virtual E0
 {
-  Binary(L const &l, double const &r)
-    : L(l)
+  Binary(E0 const &e0, double const &e1_pri)
+    : E0(e0)
   {
-    this->rv = r;
+    this->e1_pri = e1_pri;
   }
 
   Binary() {}
 
-  void eval() const
+  void primal() const
   {
-    L const &l(static_cast<L const &>(*this));
-    l.eval();
-    this->v = OP::eval(l.v, rv);
+    E0 const &e0(static_cast<E0 const &>(*this));
+    e0.primal();
+    this->pri = OP::primal(e0.pri, e1_pri);
   }
 
-  void diff() const
+  void adjoint() const
   {
-    L const &l(static_cast<L const &>(*this));
-    double rvd{0};
-    OP::diff(l.v, l.d, rv, rvd, this->d);
+    E0 const &e0(static_cast<E0 const &>(*this));
+    double e1_adj{0};
+    OP::adjoint(e0.pri, e0.adj, e1_pri, e1_adj, this->adj);
   }
 
-  static double rv;
-  static double v;
-  static double d;
+  static double e1_pri;
+  static double pri;
+  static double adj;
 };
 
-template<typename OP, typename L>
-double Binary<OP, L, double>::rv = 0;
+template<typename OP, typename E0>
+double Binary<OP, E0, double>::e1_pri = 0;
 
-template<typename OP, typename L>
-double Binary<OP, L, double>::v = 0;
+template<typename OP, typename E0>
+double Binary<OP, E0, double>::pri = 0;
 
-template<typename OP, typename L>
-double Binary<OP, L, double>::d = 0;
-
-
+template<typename OP, typename E0>
+double Binary<OP, E0, double>::adj = 0;
 
 
-template<class T> struct Diff {};
 
-template<class OP, class L, class R>
-struct Diff<Binary<OP, L, R> >
-  : virtual Binary<OP, Diff<L>, Diff<R> >
+
+template<typename T> struct PrimalEvaluator {};
+
+template<typename OP, typename E0, typename E1>
+struct PrimalEvaluator<Binary<OP, E0, E1> >
+  : virtual Binary<OP, PrimalEvaluator<E0>, PrimalEvaluator<E1> >
 {
-  ~Diff()
+  PrimalEvaluator()
   {
-    reinterpret_cast<Binary<OP, L, R> const *>(this)->diff();
+    reinterpret_cast<Binary<OP, E0, E1> const *>(this)->primal();
   }
 };
 
-template<class OP, class L>
-struct Diff<Binary<OP, L, double> >
-  : virtual Binary<OP, Diff<L>, double>
+template<typename OP, typename E0>
+struct PrimalEvaluator<Binary<OP, E0, double> >
+  : virtual Binary<OP, PrimalEvaluator<E0>, double>
 {
-  ~Diff()
+  PrimalEvaluator()
   {
-    reinterpret_cast<Binary<OP, L, double> const *>(this)->diff();
+    reinterpret_cast<Binary<OP, E0, double> const *>(this)->primal();
+  }
+};
+
+
+
+template<typename T> struct AdjointEvaluator {};
+
+template<typename OP, typename E0, typename E1>
+struct AdjointEvaluator<Binary<OP, E0, E1> >
+  : virtual Binary<OP, AdjointEvaluator<E0>, AdjointEvaluator<E1> >
+{
+  ~AdjointEvaluator()
+  {
+    reinterpret_cast<Binary<OP, E0, E1> const *>(this)->adjoint();
+  }
+};
+
+template<typename OP, typename E0>
+struct AdjointEvaluator<Binary<OP, E0, double> >
+  : virtual Binary<OP, AdjointEvaluator<E0>, double>
+{
+  ~AdjointEvaluator()
+  {
+    reinterpret_cast<Binary<OP, E0, double> const *>(this)->adjoint();
   }
 };
 
@@ -165,36 +193,40 @@ struct B;
 
 int main()
 {
-  double _a = 3;
-  double _b = 4;
-  double _rd = 1;
+  double a_pri = 3;
+  double b_pri = 4;
+  double w_pri;
 
-  double c0 = 6;
-  double c1 = 7;
-  
-  Terminal<A> a{double(_a)};
-  Terminal<B> b{double(_b)};
-
-  double r = 0;
+  double a_adj = 0;
+  double b_adj = 0;
+  double w_adj = 1;
 
   {
+    Terminal<A> a{double(a_pri)};
+    Terminal<B> b{double(b_pri)};
+
+    double c0 = 6;
+    double c1 = 7;
+
     Binary<Mul, decltype(a), decltype(b)> t{a, b};
     Binary<Add, decltype(t), double>      u{t, c0};
-    Binary<Sub, decltype(t), double>      v{t, c1}; // `Add' causes compilation error
+    Binary<Add, decltype(t), double>      v{t, c1}; // `Add' causes compilation error: duplicate base type <X> invalid
     Binary<Div, decltype(u), decltype(v)> w{u, v};
 
     // primal
-    w.eval();
-    r = w.v;
+    PrimalEvaluator<decltype(w)>{};
+    w_pri = w.pri;
 
     // adjoint
-    w.d = double(_rd);
-    Diff<decltype(w)>{};
+    w.adj = w_adj;
+    AdjointEvaluator<decltype(w)>{};
+    a_adj += a.adj;
+    b_adj += b.adj;
   }
 
-  std::cout << "a       = " << a.v << std::endl;
-  std::cout << "b       = " << b.v << std::endl;
-  std::cout << "result  = " << r   << std::endl;
-  std::cout << "a-adj   = " << a.d << std::endl;
-  std::cout << "b-adj   = " << b.d << std::endl;
+  std::cout << "a     = " << a_pri << std::endl;
+  std::cout << "b     = " << b_pri << std::endl;
+  std::cout << "w     = " << w_pri << std::endl;
+  std::cout << "a-adj = " << a_adj << std::endl;
+  std::cout << "b-adj = " << b_adj << std::endl;
 }
