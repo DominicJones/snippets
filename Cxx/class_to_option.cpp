@@ -78,10 +78,7 @@ inline auto toStencilOption() noexcept
   using Map = StencilTypeToStencilOptionMap;
   auto constexpr offset = TupleHelper::ElementIndex<std::common_type<Stencil>, Map>::value;
   return std::get<offset + 1>(Map{});
-FieldLoop_begin(c, Cell, region)
-{
 }
-FieldLoop_end();}
 
 
 #include <iostream>
