@@ -16,6 +16,12 @@ void foo(Active const &x1, Active const &x2, Active &y)
   y = b * exp(a);
 }
 
+// decltype(x1 * x2) = Binary<Mul, Active const &, Active const &>
+// but decltype(a) = Binary<Mul, Active const &, Active const &> const
+
+// y never goes out of scope, therefore primal and adjoint
+// must be evaluated together. (Also, y.adj != 0)
+
 int main()
 {
   usign Active = dco_map::ga1s<double>::type;
@@ -23,7 +29,7 @@ int main()
   Active x2 = 17;
   Active y1;
   dco_map::derivative(y1) = 1;
-  foo(x1 , x2 , y1);
+  foo(x1, x2, y1);
   printf("adjoint of x1 = %f \n", dco_map::derivative(x1));
   printf("adjoint of x2 = %f \n", dco_map::derivative(x2));
 }
@@ -52,5 +58,12 @@ void bar(int n, Active const x[], Active &y)
     d = c * cos(b - a);
   } MAP_IF_END;
 
-  y = a * b * c * d;
+  Active e;
+  MAP_IF(Active, true) {
+    e = a * b * c;
+  } MAP_IF_END;
+
+  y = e * d;
+  
+  // y = a * b * c * d;
 }
