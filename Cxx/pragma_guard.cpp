@@ -27,11 +27,14 @@ int main(int argc, char** argv)
   {
     std::string filename = argv[iarg];
 
-    std::regex header_regex("\\.*(.h|.hpp)");
-    if (!std::regex_search(filename, header_regex))
     {
-      // std::cout << filename << " is not a header file" << std::endl;
-      continue;
+      std::regex header_regex("\\.*(.h|.hpp)$");
+
+      if (!std::regex_search(filename, header_regex))
+      {
+        std::cout << filename << " is not a header file" << std::endl;
+        continue;
+      }
     }
 
     std::vector<std::string> lines;
