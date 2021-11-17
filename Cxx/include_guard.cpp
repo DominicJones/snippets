@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     std::string guard_name;
 
     {
-      std::regex header_regex("\\.*(.h|.hpp)$");
+      std::regex header_regex("\\.(h|hpp)$");
 
       if (!std::regex_search(filename, header_regex))
       {
