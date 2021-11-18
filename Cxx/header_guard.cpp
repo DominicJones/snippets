@@ -1,11 +1,5 @@
-// general:
-//   create C++ header guards, using pragma once (default) or include guards (-p|-m <module>)
-//
-// use:
-//   header_guard [-v|-p|-m <module>] <directory|file|new-file>
-//
-// requirements:
-//   C++17 compiler
+// compile:
+//   ~/dev/compilers/linux-x86_64-2.12/gnu9.2.0/bin/g++ -static-libstdc++ -std=c++17 <file>
 //
 #include <iostream>
 #include <fstream>
@@ -73,19 +67,37 @@ int main(int argc, char** argv)
   auto const pragma_once = std::string("#pragma once");
 
   // options
+  auto show_help_opt = std::make_pair("-h|--help", "print help");
+  auto is_verbose_opt = std::make_pair("-v|--verbose", "print status");
+  auto use_path_opt = std::make_pair("-p|--use-path", "generate include guards using file path");
+  auto use_caps_path_opt = std::make_pair("-P|--use-caps-path", "generate include guards using capitalised file path");
+  auto module_name_opt = std::make_pair("-m|--module-name", "generate include guards using module name");
+
   auto iarg = int{0};
-  auto const is_verbose = has_option(args, "-v|--verbose", iarg);
-  auto const use_path = has_option(args, "-p|--use-path", iarg);
-  auto const module_name = get_option(args, "-m|--module-name", iarg);
+  auto const show_help = has_option(args, show_help_opt.first, iarg);
+  auto const is_verbose = has_option(args, is_verbose_opt.first, iarg);
+  auto const use_path = has_option(args, use_path_opt.first, iarg);
+  auto const use_caps_path = has_option(args, use_caps_path_opt.first, iarg);
+  auto const module_name = get_option(args, module_name_opt.first, iarg);
 
-  // directory|file
-  auto const fs_path = std::filesystem::path{args[iarg + 1]};
+  if (show_help)
+  {
+    std::string help_msg =
+      std::string("Usage: header_guard [options] file...\n") +
+      std::string("Options:\n") +
+      show_help_opt.first + "  " + show_help_opt.second + "\n" +
+      is_verbose_opt.first + "  " + is_verbose_opt.second + "\n" +
+      use_path_opt.first + "  " + use_path_opt.second + "\n" +
+      use_caps_path_opt.first + "  " + use_caps_path_opt.second + "\n" +
+      module_name_opt.first + " <arg>  " + module_name_opt.second + "\n" +
+      "\n";
+    std::cout << help_msg << std::endl;
+    return 0;
+  }
 
-  auto const make_include_guard = use_path || module_name.has_value();
+
+  auto const make_include_guard = use_path || use_caps_path || module_name.has_value();
   auto const make_pragma_guard = !make_include_guard;
-
-  std::vector<std::string> filenames;
-  filenames.reserve(1000);
 
 
   if (is_verbose)
@@ -103,40 +115,49 @@ int main(int argc, char** argv)
   }
 
 
+  std::vector<std::string> filenames;
+  filenames.reserve(1000);
+
+
   // make file list
   {
     std::regex const header_regex("\\.(h|hpp)$");
 
-    if (std::filesystem::is_directory(fs_path))
+    for (auto it = iarg + 1; it < argc; ++it)
     {
-      for (auto const &fs_entry: std::filesystem::recursive_directory_iterator{fs_path})
+      auto const fs_path = std::filesystem::path{args[it]};
+
+      if (std::filesystem::is_directory(fs_path))
       {
-        auto const entry = fs_entry.path().string();
-        if (std::regex_search(entry, header_regex))
+        for (auto const &fs_entry: std::filesystem::recursive_directory_iterator{fs_path})
         {
-          filenames.push_back(entry);
-        }
-      }
-    }
-    else
-    {
-      if (std::filesystem::is_regular_file(fs_path))
-      {
-        auto const entry = fs_path.string();
-        if (std::regex_search(entry, header_regex))
-        {
-          filenames.push_back(entry);
+          auto const entry = fs_entry.path().string();
+          if (std::regex_search(entry, header_regex))
+          {
+            filenames.push_back(entry);
+          }
         }
       }
       else
       {
-        auto const entry = fs_path.string();
-        if (std::regex_search(entry, header_regex))
+        if (std::filesystem::is_regular_file(fs_path))
         {
-          std::fstream new_file;
-          new_file.open(entry, std::ios_base::out);
-          new_file.close();
-          filenames.push_back(entry);
+          auto const entry = fs_path.string();
+          if (std::regex_search(entry, header_regex))
+          {
+            filenames.push_back(entry);
+          }
+        }
+        else
+        {
+          auto const entry = fs_path.string();
+          if (std::regex_search(entry, header_regex))
+          {
+            std::fstream new_file;
+            new_file.open(entry, std::ios_base::out);
+            new_file.close();
+            filenames.push_back(entry);
+          }
         }
       }
     }
@@ -150,11 +171,13 @@ int main(int argc, char** argv)
       std::cout << filename << std::endl;
     }
 
-    std::string guard_name;
 
+    std::string guard_name;
     auto has_include_guard = false;
     auto has_pragma_guard = false;
 
+
+    // generate guard name
     if (module_name.has_value())
     {
       std::string const stem = std::filesystem::path{filename}.stem();
@@ -173,8 +196,12 @@ int main(int argc, char** argv)
         std::regex const guard_regex("^_*");
         guard_name = std::regex_replace(guard_name, guard_regex, "");
       }
+
+      if (use_caps_path)
+      {
+        std::for_each(guard_name.begin(), guard_name.end(), [](char &c){ c = ::toupper(c); });
+      }
     }
-    // std::cout << guard_name << std::endl;
 
 
     std::vector<std::string> lines;
@@ -312,7 +339,6 @@ int main(int argc, char** argv)
 
       has_pragma_guard = found_pragma_guard_start;
     }
-
 
     if (!has_pragma_guard && !has_include_guard)
     {
