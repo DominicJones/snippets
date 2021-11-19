@@ -1,6 +1,5 @@
-// compile:
-//   ~/dev/compilers/linux-x86_64-2.12/gnu9.2.0/bin/g++ -static-libstdc++ -std=c++17 <file>
-//
+// C++17
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -69,6 +68,7 @@ int main(int argc, char** argv)
   // options
   auto show_help_opt = std::make_pair("-h|--help", "print help");
   auto is_verbose_opt = std::make_pair("-v|--verbose", "print status");
+  auto fix_guards_opt = std::make_pair("-f|--fix-guards", "fix underscores in existing include guards");
   auto use_path_opt = std::make_pair("-p|--use-path", "generate include guards using file path");
   auto use_caps_path_opt = std::make_pair("-P|--use-caps-path", "generate include guards using capitalised file path");
   auto module_name_opt = std::make_pair("-m|--module-name", "generate include guards using module name");
@@ -76,9 +76,13 @@ int main(int argc, char** argv)
   auto iarg = int{0};
   auto const show_help = has_option(args, show_help_opt.first, iarg);
   auto const is_verbose = has_option(args, is_verbose_opt.first, iarg);
+  auto const fix_guards = has_option(args, fix_guards_opt.first, iarg);
   auto const use_path = has_option(args, use_path_opt.first, iarg);
   auto const use_caps_path = has_option(args, use_caps_path_opt.first, iarg);
   auto const module_name = get_option(args, module_name_opt.first, iarg);
+
+  // for testing
+  auto const is_extra_verbose = is_verbose && false;
 
   if (show_help)
   {
@@ -87,6 +91,7 @@ int main(int argc, char** argv)
       std::string("Options:\n") +
       show_help_opt.first + "  " + show_help_opt.second + "\n" +
       is_verbose_opt.first + "  " + is_verbose_opt.second + "\n" +
+      fix_guards_opt.first + "  " + fix_guards_opt.second + "\n" +
       use_path_opt.first + "  " + use_path_opt.second + "\n" +
       use_caps_path_opt.first + "  " + use_caps_path_opt.second + "\n" +
       module_name_opt.first + " <arg>  " + module_name_opt.second + "\n" +
@@ -96,8 +101,8 @@ int main(int argc, char** argv)
   }
 
 
-  auto const make_include_guard = use_path || use_caps_path || module_name.has_value();
-  auto const make_pragma_guard = !make_include_guard;
+  auto const make_include_guard = !fix_guards && (use_path || use_caps_path || module_name.has_value());
+  auto const make_pragma_guard = !fix_guards && (!make_include_guard);
 
 
   if (is_verbose)
@@ -112,6 +117,9 @@ int main(int argc, char** argv)
       else
         std::cout << "generating path-based include guards" << std::endl;
     }
+
+    if (fix_guards)
+      std::cout << "fixing existing include guards" << std::endl;
   }
 
 
@@ -178,28 +186,31 @@ int main(int argc, char** argv)
 
 
     // generate guard name
-    if (module_name.has_value())
+    if (!fix_guards)
     {
-      std::string const stem = std::filesystem::path{filename}.stem();
-      guard_name = std::string(module_name.value()) + "_" + stem + "_h";
-    }
-    else
-    {
-      guard_name = filename;
-
+      if (module_name.has_value())
       {
-        std::regex const guard_regex("\\.|/");
-        guard_name = std::regex_replace(guard_name, guard_regex, "_");
+        std::string const stem = std::filesystem::path{filename}.stem();
+        guard_name = std::string(module_name.value()) + "_" + stem + "_h";
       }
-
+      else
       {
-        std::regex const guard_regex("^_*");
-        guard_name = std::regex_replace(guard_name, guard_regex, "");
-      }
+        guard_name = filename;
 
-      if (use_caps_path)
-      {
-        std::for_each(guard_name.begin(), guard_name.end(), [](char &c){ c = ::toupper(c); });
+        {
+          std::regex const guard_regex("\\.|/");
+          guard_name = std::regex_replace(guard_name, guard_regex, "_");
+        }
+
+        {
+          std::regex const guard_regex("^_*");
+          guard_name = std::regex_replace(guard_name, guard_regex, "");
+        }
+
+        if (use_caps_path)
+        {
+          std::for_each(guard_name.begin(), guard_name.end(), [](char &c){ c = ::toupper(c); });
+        }
       }
     }
 
@@ -275,6 +286,22 @@ int main(int argc, char** argv)
                 remove_lines.insert(it - 2);
                 replace_lines[it - 1] = std::string("#ifndef " + guard_name + "\n#define " + guard_name);
               }
+
+              if (fix_guards)
+              {
+                {
+                  std::regex const leading_underscores_regex("^_*");
+                  ifndef_name = std::regex_replace(ifndef_name, leading_underscores_regex, "");
+                }
+
+                {
+                  std::regex const double_underscores_regex("__");
+                  ifndef_name = std::regex_replace(ifndef_name, double_underscores_regex, "_");
+                }
+
+                remove_lines.insert(it - 2);
+                replace_lines[it - 1] = std::string("#ifndef " + ifndef_name + "\n#define " + ifndef_name);
+              }
             }
           }
         }
@@ -301,6 +328,9 @@ int main(int argc, char** argv)
      }
 
       has_include_guard = found_include_guard_start && found_include_guard_end;
+
+      if (is_extra_verbose && has_include_guard)
+        std::cout << "found include guards" << std::endl;
     }
 
 
@@ -338,6 +368,9 @@ int main(int argc, char** argv)
       }
 
       has_pragma_guard = found_pragma_guard_start;
+
+      if (is_extra_verbose && has_pragma_guard)
+        std::cout << "found pragma guard" << std::endl;
     }
 
     if (!has_pragma_guard && !has_include_guard)
