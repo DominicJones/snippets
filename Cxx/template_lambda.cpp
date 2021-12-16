@@ -1,37 +1,46 @@
-// C++20
+// C++14
 
 #include <iostream>
 #include <type_traits>
 #include <utility>
 
 
-using Eval = std::integral_constant<char, sizeof(char)>;
-using EvalAlt = std::integral_constant<int, sizeof(int)>;
-
-template<typename T> int eval(T v) { return v + v; }
-template<typename T> int evalAlt(T v) { return v * v; }
+struct Primal {};
+struct Adjoint {};
 
 
-template<typename T1, typename T2, typename F> struct CDLambda
+template<typename> struct SelectMode;
+
+template<> struct SelectMode<Primal>
 {
-  F fn;
-  CDLambda(F f) : fn(f) { fn(T1{}); }
-  ~CDLambda() { fn(T2{}); }
+  template<typename T> static int eval(T v) { return v + v; }
+};
+    
+template<> struct SelectMode<Adjoint>
+{
+  template<typename T> static int eval(T v) { return v * v; }
 };
 
+
+
+template<typename T1, typename T2, typename F> struct Lambda
+{
+  F fn;
+  Lambda(F f) : fn(f) { fn(T1{}); }
+  ~Lambda() { fn(T2{}); }
+};
+
+
 template<typename T1, typename T2, typename F>
-auto makeCDLambda(T1, T2, F f) { return CDLambda<T1, T2, F>{f}; }
+auto makeLambda(T1, T2, F f) { return Lambda<T1, T2, F>{f}; }
 
 
 #define Block_begin() \
-  auto lambda = makeCDLambda(Eval::value, EvalAlt::value, [&]<typename TT>(TT vv) \
+  auto lambda = makeLambda(Primal{}, Adjoint{}, [&](auto vv) \
   { \
-    auto eval = [vv]<typename T>(T v) \
+    auto eval = [vv](auto v) \
     { \
-      if constexpr (sizeof(vv) == EvalAlt::value) \
-        return ::evalAlt(v); \
-      else \
-        return ::eval(v); \
+      return SelectMode<decltype(vv)>::eval(v); \
     };
 
 #define Block_end() \
