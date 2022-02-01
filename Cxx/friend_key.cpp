@@ -3,12 +3,11 @@ template<typename... T> class FriendKey;
 template<typename T>
 class FriendKey<T>
 {
-private:
-  friend T;
-
 protected:
   FriendKey() {}
   FriendKey(FriendKey const &) {}
+private:
+  friend T;
 };
 
 template<typename T, typename... Ts>
