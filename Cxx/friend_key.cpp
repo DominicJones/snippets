@@ -16,30 +16,36 @@ class FriendKey<T, Ts...> : FriendKey<T>, FriendKey<Ts...> {};
 
 
 class Foo;
-
-struct Bar
-{
-  void evaluate(Foo &foo);
-};
-
+class Bar;
+class Baz;
 
 struct Foo
 {
-  void special(FriendKey<Bar>) {}
-  private: void secret() {}
+  void special(FriendKey<Bar, Baz>) const {}
+  private: void secret() const {}
 };
 
-
-void
-Bar::evaluate(Foo &foo)
+struct Bar
 {
-  foo.special({});
-  // foo.secret();  // should not compile
-}
+  void evaluate(Foo const &foo)
+  {
+    foo.special({});
+    // foo.secret();  // should not compile
+  }
+};
+
+struct Baz
+{
+  void evaluate(Foo const &foo)
+  {
+    foo.special({});
+    // foo.secret();  // should not compile
+  }
+};
 
 
 int main()
 {
-  Foo foo;
-  Bar{}.evaluate(foo);
+  Bar{}.evaluate(Foo{});
+  Baz{}.evaluate(Foo{});
 }
