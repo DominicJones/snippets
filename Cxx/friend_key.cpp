@@ -1,5 +1,8 @@
 template<typename... T> class FriendKey;
 
+template<typename T, typename... Ts>
+class FriendKey<T, Ts...> : FriendKey<T>, FriendKey<Ts...> {};
+
 template<typename T>
 class FriendKey<T>
 {
@@ -9,9 +12,6 @@ protected:
 private:
   friend T;
 };
-
-template<typename T, typename... Ts>
-class FriendKey<T, Ts...> : FriendKey<T>, FriendKey<Ts...> {};
 
 
 class Foo;
