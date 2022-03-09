@@ -1,7 +1,3 @@
-// -*- C++ -*-
-#ifndef CNC_H
-#define CNC_H
-
 /*
   Context
   =======
@@ -120,6 +116,9 @@ std::optional<Rectangle> fit_into_rectangle(const Polygon& polygon, float epsilo
   float dx0 = 0;
   float dy0 = 0;
 
+  float const xR = x0;
+  float const yR = y0;
+
   for (int i = 1; i != n; ++i)
   {
     // cache this and the next point
@@ -155,11 +154,27 @@ std::optional<Rectangle> fit_into_rectangle(const Polygon& polygon, float epsilo
     db = ub - lb;
 
     // polygon centroid (partial)
+    if (false)
     {
-      auto const dxy = (x0*y - x*y0);
-      xc.x = xc.x + (x0 + x)*dxy;
-      xc.y = xc.y + (y0 + y)*dxy;
-      area += dxy;
+      auto const w = (x0*y - x*y0)/2;
+      auto const cx = (x0 + x)/3;
+      auto const cy = (y0 + y)/3;
+      xc.x += cx * w;
+      xc.y += cy * w;
+      area += w;
+    }
+    else
+    {
+      auto const ux = x0 - xR;
+      auto const uy = y0 - yR;
+      auto const vx = x - xR;
+      auto const vy = y - yR;
+      auto const w = (ux*vy - vx*uy)/2;
+      auto const cx = (ux + vx)/3 + xR;
+      auto const cy = (uy + vy)/3 + yR;
+      xc.x += cx * w;
+      xc.y += cy * w;
+      area += w;
     }
 
     // update previous point and edge values
@@ -170,9 +185,8 @@ std::optional<Rectangle> fit_into_rectangle(const Polygon& polygon, float epsilo
   }
 
   // polygon centroid (final)
-  area /= 2;
-  xc.x /= (6 * area);
-  xc.y /= (6 * area);
+  xc.x /= area;
+  xc.y /= area;
 
   // candidate centroid based on computed bounds
   auto const xc_b = lb + db / Point{2.f, 2.f};
@@ -251,4 +265,3 @@ int main() {
   }
 }
 
-#endif // include guard
