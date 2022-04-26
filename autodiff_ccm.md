@@ -1,4 +1,3 @@
-
 # Automatic Differentiation in Star-CCM+
 
 To compile these examples, add
@@ -90,20 +89,37 @@ The ingredients are:
 - operators, like ```operator*(x,y)``` and ```sqrt(x)```
 - operator tokens, like ```Multiply``` and ```Sqrt```
 - terminals, like ```Drv<mode, double>```
-- roots (or LHSs), like ```Drv<mode, double&>```
-- expressions (or RHSs), like ```srqt(a*a + b*b)```
+- results, like ```Drv<mode, double&>```
+- expressions, like ```srqt(a*a + b*b)```
 - expression evaluators, like the primal evaluator or the adjoint evaluator
 
-A key part of the design is that the expression does not provide a built-in means to compute anything, nor does its nodes hold any data, except references or copies of the terminals. All the computation is performed by an evaluator.
 
 ```mermaid
-graph LR;
-R[r]-->|' = '| A((sqrt))
+graph LR
+subgraph Result
+R[r];
+end
+R---|' = '|A((sqrt));
+subgraph Expression
 A-->B((+));
 B-->C((*));
 B-->D((*));
-C-->E[a];
-C-->E[a];
-D-->F[b];
-D-->F[b];
+subgraph Terminals
+E[a];
+end
+subgraph Terminals
+F[b];
+end
+C-->E;
+C-->E;
+D-->F;
+D-->F;
+end
 ```
+
+A key part of the design is that the expression does not provide a built-in means to compute anything, nor does its nodes hold any data, except references or copies of the terminals. All the computation is performed by an evaluator.
+
+From the perspective of the language features and techniques, the following are essential:
+- variadic types, i.e. ```template<typename... Ts>```
+- universal references, i.e. ```template<typename T> auto fn(T &&v)```
+- `template expressions', i.e. ```Expression<Op, Args...>```
