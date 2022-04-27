@@ -1,45 +1,70 @@
 # Automatic Differentiation in Star-CCM+
 
-To compile these examples, add
-
-```cpp
-#include "adjoint/drvexpr/DrvExpressionEngines.h"
+To try the examples, add them to 
 ```
-from ```base/src/```
+base/src/adjoint/adjoint/drvexpr/test/DrvExpressionTest.cpp
+```
+and evaluate them with
+```cpp
+TEST_F(DrvExpressionTest, main)
+{
+  // do stuff
+}
+```
 
+To compile and run
+```
+cd star/base/src/
+make c++
+cd star/
+./bin/starccm+ "-x" "DrvExpressionTest"
+```
 
 ## A simple example
 
 Write a function that can be used to compute hypotenuse of a right-angled triangle, and its derivative.
 
-### Regular function
+<table>
+<tr>
+<th>
+Regular
+</th>
+<th>
+Differentiable
+</th>
+</tr>
+<tr>
+<td  valign="top">
 
-```cpp
+<pre lang="cpp">
 void hypot(double a,
            double b,
            double& r)
 {
   auto const t0{a * a};
-  auto const t0{b * b};
+  auto const t1{b * b};
   auto const t2{std::sqrt(t0 + t1)};
   r = t2;
 }
-```
+</pre>
+</td>
+<td  valign="top">
 
-### Differentiable function
-
-```cpp
-template<DrvMode::Option mode>
-void hypot(Drv<mode, double> a,
-           Drv<mode, double> b,
-           Drv<mode, double&> r)
+<pre lang="cpp">
+template&lt;DrvMode::Option mode&gt;
+void hypot(Drv&lt;mode, double&gt; a,
+           Drv&lt;mode, double&gt; b,
+           Drv&lt;mode, double&&gt; r)
 {
   auto const t0{edrv(a * a)};
-  auto const t0{edrv(b * b)};
+  auto const t1{edrv(b * b)};
   auto const t2{edrv(drv::sqrt(t0 + t1))};
   r = t2;
 }
-```
+</pre>
+</td>
+</tr>
+</table>
 
 ### Calling the differentiable function to compute the objective
 
@@ -57,7 +82,7 @@ Drv<mode, double&> r{r_pri};
 
 hypot(a, b, r);
 
-assert(r_pri == 5);
+EXPECT_EQ(r_pri, 5);
 ```
 
 ### Calling the differentiable function to compute the derivative
@@ -79,8 +104,8 @@ Drv<mode, double&> r{r_drv};
 
 hypot(a, b, r);
 
-assert(a_drv == 0.8); //  dr/da
-assert(b_drv == 0.6); //  dr/db
+EXPECT_EQ(a_drv, 0.6); //  dr/da
+EXPECT_EQ(b_drv, 0.8); //  dr/db
 ```
 
 ## How it works
@@ -117,7 +142,7 @@ D-->F;
 end
 ```
 
-A key part of the design is that the expression does not provide a built-in means to compute anything, nor does its nodes hold any data, except references or copies of the terminals. All the computation is performed by an evaluator.
+_A key part of the design is that the expression does not provide a built-in means to compute anything, nor does its nodes hold any data, except references or copies of the terminals. All the computation is performed by an evaluator._
 
 From the perspective of the language features and techniques, the following are essential:
 - variadic types, i.e. ```template<typename... Ts>```
