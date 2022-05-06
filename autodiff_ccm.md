@@ -1,6 +1,54 @@
 # Automatic Differentiation in Star-CCM+
 
-To try the examples, add them to 
+## Levels of testing
+
+We use three levels of granularity for testing code:
+1. ```gtest``` for simple things
+2. ```componenttest``` for sim file dependent things
+3. ```startest``` for complete algorithms
+
+Everyone will be familiar with #3, some with #1, and probably no one with #2.
+
+### Component tests
+
+The ```componenttest``` machinery was added by the adjoint group to test things like a term or an equation. Without this kind of testing the accuracy of adjoint computations would be a thing of fiction. This kind of testing has been critical for both correctness and for analysing performace.
+
+To run a component test, find your favourite sim file and write a little java script:
+```java
+package macro;
+import java.util.*;
+import star.base.*;
+import star.common.*;
+
+public class TestDrvComponent extends StarMacro
+{
+  public void execute()
+  {
+    Simulation simulation = getActiveSimulation();
+    NeoProperty args = new NeoProperty();
+
+    args.put("BaseName", "StarComponentTest");
+    simulation.execute("LoadLibrary", args);
+
+    Simulation simulation = getActiveSimulation();
+    
+    NeoProperty properties = new NeoProperty();
+    properties.put("Simulation", simulation);
+    properties.put("ComponentTestName", "TestDrvEulerEquation");
+    NeoProperty response = simulation.execute("RunComponentTest", properties);
+  }
+}
+```
+then run
+```
+./bin/starccm+ -dp -np 4 -batch ~/TestDrvEulerEquation.java ~/lemans.sim 
+```
+
+### gtests
+
+The ```gtest``` machinery proved useful, but not so much as a means for testing but rather as a means for quickly testing. Here, only the bear minimum needs to be compiled in order to run the corresponding gtest. The other major benefit has been to treat it like a cheat sheet for using the differentiation tool.
+
+To try the examples, below, add them to 
 ```
 base/src/adjoint/adjoint/drvexpr/test/DrvExpressionTest.cpp
 ```
@@ -20,7 +68,19 @@ cd star/
 ./bin/starccm+ "-x" "DrvExpressionTest"
 ```
 
-## A simple example
+## Computing sensitivities
+
+Calculate the derivative of the pressure drop along a pipe with respect to the inlet mean velocity.
+
+1. Define the mean velocity (global parameter)
+2. Define the inlet velocity profile (vector field field function)
+3. Define the pressure drop report
+4. Select the adjoint models and create a cost function associated to the report
+5. Create a scalar parameter sensitivity and assocate it to the mean velocity
+
+
+
+## Differentiating the code
 
 Write a function that can be used to compute hypotenuse of a right-angled triangle, and its derivative.
 
@@ -145,6 +205,11 @@ end
 _A key part of the design is that the expression does not provide a built-in means to compute anything, nor does its nodes hold any data, except references or copies of the terminals. All the computation is performed by an evaluator._
 
 From the perspective of the language features and techniques, the following are essential:
+- RAII; evaluation through destructor calls
 - variadic types, i.e. ```template<typename... Ts>```
 - universal references, i.e. ```template<typename T> auto fn(T &&v)```
 - `template expressions', i.e. ```Expression<Op, Args...>```
+
+## Fundamental difficulties
+
+Since the adjoint is essentially the transpose of the application of the chain rule, this amounts needing a reverse-order accumulation of partial derivatives. For `pure functional' code this can be assured. However, alogorithms often branch and values are mutated; these need to be handled somehow.
