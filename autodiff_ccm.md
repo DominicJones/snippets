@@ -77,7 +77,8 @@ Calculate the derivative of the pressure drop along a pipe with respect to the i
 3. Define the pressure drop report
 4. Select the adjoint models and create a cost function associated to the report
 5. Create a scalar parameter sensitivity and assocate it to the mean velocity
-
+6. Run the primal then run the adjoint
+7. Tabulate the sensitivity
 
 
 ## Differentiating the code
@@ -91,6 +92,9 @@ Regular
 </th>
 <th>
 Differentiable
+</th>
+<th>
+Explicit adjoint
 </th>
 </tr>
 <tr>
@@ -120,6 +124,29 @@ void hypot(Drv&lt;mode, double&gt; a,
   auto const t1{edrv(b * b)};
   auto const t2{edrv(drv::sqrt(t0 + t1))};
   r = t2;
+}
+</pre>
+</td>
+<td  valign="top">
+
+<pre lang="cpp">
+template&lt;DrvMode::Option mode = ADJOINT&gt;
+void hypot(Drv&lt;mode, double&gt; a,
+           Drv&lt;mode, double&gt; b,
+           Drv&lt;mode, double&&gt; r)
+{
+  auto const t0{edrv(a * a)};
+  auto const t1{edrv(b * b)};
+  auto const t2{edrv(drv::sqrt(t0 + t1))};
+
+  // assignment
+  t2.drv += (1) * r.drv;
+
+  // destructors
+  t1.drv += (1 / 2 * (t0.pri + t1.pri)) * t2.drv;
+  t0.drv += (1 / 2 * (t0.pri + t1.pri)) * t2.drv;
+  b.drv  += (2 * b.pri) * t1.drv;
+  a.drv  += (2 * a.pri) * t0.drv;
 }
 </pre>
 </td>
