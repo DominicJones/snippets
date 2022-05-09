@@ -38,7 +38,7 @@ public class TestDrvComponent extends StarMacro
 ```
 then run
 ```
-./bin/starccm+ -dp -np 4 -batch ~/TestDrvEulerEquation.java ~/lemans.sim 
+./bin/starccm+ -dp -np 4 -batch ~/TestDrvComponent.java ~/lemans.sim 
 ```
 
 ### gtests
@@ -337,6 +337,4 @@ From a political perspective, if a differentiable version replaced the regular v
 2. who `owns' the code? Ideally the people related to the particular departments, but do they really wish to deal with the burden of adjoint?
 3. what test coverage is the developer expected to do? Primal only, primal and adjoint, component tests?
 
-In short, adjoint is an architectural nightmere, and one that will get worse the longer this problem remains unaddressed. The of affairs is presently tolerated because adjoint is powerful and has be applied to many models to do all sorts of interesting things, but I don't expect it to last.
-
-What to do?
+In short, adjoint is an architectural nightmere, and one that will get worse the longer this problem remains unaddressed. The state of affairs is tolerated because adjoint is powerful and has be applied to many models to do all sorts of interesting things, but eventually code maintence will overwhelm development if the present course continues.
