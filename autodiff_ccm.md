@@ -25,12 +25,9 @@ public class TestDrvComponent extends StarMacro
   public void execute()
   {
     Simulation simulation = getActiveSimulation();
-    NeoProperty args = new NeoProperty();
-
-    args.put("BaseName", "StarComponentTest");
-    simulation.execute("LoadLibrary", args);
-
-    Simulation simulation = getActiveSimulation();
+    NeoProperty libs = new NeoProperty();
+    libs.put("BaseName", "StarComponentTest");
+    simulation.execute("LoadLibrary", libs);
     
     NeoProperty properties = new NeoProperty();
     properties.put("Simulation", simulation);
@@ -50,7 +47,7 @@ The ```gtest``` machinery proved useful, but not so much as a means for testing 
 
 To try the examples, below, add them to 
 ```
-base/src/adjoint/adjoint/drvexpr/test/DrvExpressionTest.cpp
+base/src/adjoint/drvexpr/test/DrvExpressionTest.cpp
 ```
 and evaluate them with
 ```cpp
@@ -237,6 +234,86 @@ From the perspective of the language features and techniques, the following are 
 - universal references, i.e. ```template<typename T> auto fn(T &&v)```
 - `template expressions', i.e. ```Expression<Op, Args...>```
 
-## Fundamental difficulties
+### ```const``` qualified
 
 Since the adjoint is essentially the transpose of the application of the chain rule, this amounts needing a reverse-order accumulation of partial derivatives. For `pure functional' code this can be assured. However, alogorithms often branch and values are mutated; these need to be handled somehow.
+
+## Fields
+
+Much like GPGPU porting, the adjoint machinery is all to do with fields, field loops, loop bodies and variable engines.
+
+<table>
+<tr>
+<th>
+Regular
+</th>
+<th>
+Differentiable
+</th>
+</tr>
+<tr>
+<td  valign="top">
+
+<pre lang="cpp">
+ 
+void
+eval(FvInterface const &iface)
+{
+  Field&lt;Density const, IFaceCell&gt; rho{iface, phase};
+  
+  Field&lt;Area&lt;3&gt; const, IFace&gt; A{iface};
+  Field&lt;Velocity const, IFaceCellRecon&lt;N&gt;&gt; V{iface};
+
+  Field&lt;FaceFlux, IFace&gt; flux{iface, phase};
+
+
+
+  FieldLoop_begin(f, IFaceCellRecon&lt;N&gt;, iface)
+  {
+    auto const aV{Real(A[f](0).dot(V[f].average()))};
+    flux[f].pipe() = rho[f](0) * aV;
+  }
+  FieldLoop_end();
+}
+</pre>
+</td>
+<td  valign="top">
+
+<pre lang="cpp">
+template&lt;DrvMode::Option mode&gt;
+void
+eval(FvInterface const &iface)
+{
+  Field&lt;Density const, IFaceCell&gt; rho{iface, phase};
+  
+  Drv&lt;mode, Field&lt;Area&lt;3&gt; const, IFace&gt;&gt; A{iface};
+  Drv&lt;mode, Field&lt;Velocity const, IFaceCellRecon&lt;N&gt;&gt;&gt; V{iface};
+
+  Drv&lt;mode, Field&lt;FaceFlux, IFace&gt;&gt; flux{iface, phase};
+
+
+  // Field index is a function of Centroid
+  DrvFieldLoop_begin(mode, f, IFaceCellRecon&lt;N&gt;, iface)
+  {
+    auto const aV{edrv(drv::dot(A[f].f0(), V[f].average()))};
+    flux[f].pipe() = rho[f](0) * aV;
+  }
+  DrvFieldLoop_end();
+}
+</pre>
+</td>
+</tr>
+</table>
+
+## End-to-end differentiation
+
+To compute the derivative of a function, the dependent and independent terms need to be identified. For a typical fluid dynamics simulation, dependent terms are usually reports relating to lift and drag of a wing, pressure drop in a pipe, heat transfer across a wall, etc. Ordinarily, there are few dependent terms. Independent terms are more varied. They can be boundary conditions, source terms, mesh coordinates, CAD parameters, etc. In short, anything that defines the problem.
+
+To support the computation of these different kinds of derivative, all the major components of the solver code path needs differentiating. They are:
+1. physics models, e.g. coupled flow, and all its dependent models, i.e. flow, energy, gradients, metrics etc
+2. reports, e.g. force, moment, pressure drop
+3. boundary and source profiles, i.e. field functions, constants
+4. mesh shape parameters, i.e. CAD or morpher control points
+
+## The vexing problem
+
