@@ -317,3 +317,26 @@ To support the computation of these different kinds of derivative, all the major
 
 ## The vexing problem
 
+Currently, the adjoint implementation is duplicating, or reimplementing in slightly different ways, existing code. In the long term, this probably cannot be sustained and some way of having one implementation from which all the different flavours generated code are obtained.
+
+Consider Euler Equation: 
+1. there is the `reference primal' implementation;
+2. there is the differentiable implementation, from which we can generate the primal, tangent and adjoint;
+3. and fairly soon there will be a GPGPU flavour of both.
+
+Merging the codes is not an easy thing to do, neither technically nor `politically', and to date there are no examples of this.
+
+From a technical perspective,
+1. the code is stylistically different,
+2. the code structure needs to be almost entirely `pure functional',
+3. some code paths are ignored in the differentiated code,
+4. some implementations are radically different, e.g. field functions are stateless in adjoint
+
+From a political perspective, if a differentiable version replaced the regular version,
+1. who takes priority when a feature could be supported in primal but not in adjoint?
+2. who `owns' the code? Ideally the people related to the particular departments, but do they really wish to deal with the burden of adjoint?
+3. what test coverage is the developer expected to do? Primal only, primal and adjoint, component tests?
+
+In short, adjoint is an architectural nightmere, and one that will get worse the longer this problem remains unaddressed. The of affairs is presently tolerated because adjoint is powerful and has be applied to many models to do all sorts of interesting things, but I don't expect it to last.
+
+What to do?
