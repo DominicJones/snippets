@@ -119,6 +119,31 @@ P-->F;
 P-->G;
 ```
 
+### Engines
+
+Much like with the GPGPU work, engines proved to be difficult to deal with, especially expression engines. For a long time, there was the problem of how to propagate the derivative through the expression, since the expression details are hidden behind the ```operator[]``` function. This was eventually solved, and soon became a go-to technique for composing differentiable terms.
+
+However, a new difficulty has now arisen in the wake of GPGPU support: what if an adjoint expression engine is used in a compound stencil? Surely, the ```atomic``` needs to be propagated down to all the independent engines? This appears to be the case, but it presents a very difficult implementation problem.
+
+```mermaid
+graph TB
+subgraph Field
+F;
+end
+subgraph Stencil
+S;
+end
+subgraph Engine
+E;
+end
+subgraph Storage
+SV;
+end
+F-->E;
+F-->S;
+E-->SV;
+```
+
 ## Differentiating the code
 
 Write a function that can be used to compute hypotenuse of a right-angled triangle, and its derivative.
