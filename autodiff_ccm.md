@@ -77,6 +77,8 @@ Calculate the derivative of the pressure drop along a pipe with respect to the i
 6. Run the primal then run the adjoint
 7. Tabulate the sensitivity
 
+![Pipe flow](./images/pipe.png)
+
 ### Dependency graph
 
 Data dependencies are implicit and complex, but they need to be differentiated all the same. Adjoint evaluates the entire tree on the fly. This side steps the problems associated with time stamps and intermediate storage, but it does limit the functionality to simple stencils and no implicit interpolation of dissonante stencils.
