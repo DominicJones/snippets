@@ -373,6 +373,16 @@ eval(FvInterface const &iface)
 </tr>
 </table>
 
+### Compilation
+
+The overhead of the differentiation tool and associated field support is considerable. When a differentiated term or equation is compiled, it is typically done so for all three modes, primal, tangent and adjoint. Monitoring of compilation cost is required, particularly peak memory usage. We caused Windows VMs to have out-of-memory problems not so long ago...
+
+ Reference Euler Equation | Differentiated Euler Equation 
+:-------------------------:|:-------------------------:
+ ![Reference Euler Equation](./images/ref.png) | ![Differentiated Euler Equation](./images/drv.png) 
+
+
+
 ## End-to-end differentiation
 
 To compute the derivative of a function, the dependent and independent terms need to be identified. For a typical fluid dynamics simulation, dependent terms are usually reports relating to lift and drag of a wing, pressure drop in a pipe, heat transfer across a wall, etc. Ordinarily, there are few dependent terms. Independent terms are more varied. They can be boundary conditions, source terms, mesh coordinates, CAD parameters, etc. In short, anything that defines the problem.
