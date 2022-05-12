@@ -306,7 +306,9 @@ Since the adjoint is essentially the transpose of the application of the chain r
 
 ## Fields
 
-Much like GPGPU porting, the adjoint machinery is all to do with fields, field loops, loop bodies and variable engines.
+Much like GPGPU porting, the adjoint machinery is all to do with fields, field loops, loop bodies and variable engines. Free functions are necessary in the expression tool (i.e. ```drv::dot(x, y)```), and ought to have been used with PETE (and now StarMkl).
+
+_The differention expression tool is a far more sophisticated expression engine than PETE or StarMkl, principally because it supports N-ary operators. This allows arbitrary functions to be part of the expression transformation, permitting functions like ```drv::weightedAve(w, a, b)```, etc. There is a rich function set which would very likely benefit regular code._
 
 <table>
 <tr>
@@ -362,7 +364,7 @@ eval(FvInterface const &iface)
   DrvFieldLoop_begin(mode, f, IFaceCellRecon&lt;N&gt;, iface)
   {
     auto const aV{edrv(drv::dot(A[f].f0(), V[f].average()))};
-    flux[f].pipe() = rho[f](0) * aV;
+    flux[f].pipe() = rho[f].c0() * aV;
   }
   DrvFieldLoop_end();
 }
