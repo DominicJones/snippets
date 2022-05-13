@@ -1,5 +1,13 @@
 # Automatic Differentiation in Star-CCM+
 
+The `Adjoint' project aims to provide the user with the means to compute the derivative of reports, such as force or heat transfer, with respect to various simulation inputs, such as surface mesh coordinates, model parameters, CAD parameters, etc, with all the selected models in between.
+
+The `Adjoint' derivative, broadly understood, is the twofold operation of applying the chain rule to a function then transposing the partial derivatives. It is the transpose which makes the approach so powerful but also makes an efficient implementation so very difficult.
+
+The great power is that the approach evaluates one row of the Jacobian at a time. Contrasting this with finite-difference approach, where it would compute one column at a time. The significant observation is that there are typically far fewer rows than columns.
+
+
+
 ## Levels of testing
 
 We use three levels of granularity for testing code:
