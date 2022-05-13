@@ -6,6 +6,7 @@ The `Adjoint' derivative, broadly understood, is the twofold operation of applyi
 
 The great power is that the approach evaluates one row of the Jacobian at a time. Contrasting this with finite-difference approach, where it would compute one column at a time. The significant observation is that there are typically far fewer rows than columns.
 
+![Jacobian](./images/jacobian.png)
 
 
 ## Levels of testing
