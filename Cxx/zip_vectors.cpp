@@ -55,7 +55,8 @@ struct zip_combine<OP, S>
 template<typename OP, typename S, typename S0, typename... Ss>
 struct zip_combine<OP, S, S0, Ss...>
 {
-  using type = typename zip_combine<OP, typename zip_pair<OP, S, S0>::type, Ss...>::type;
+  using inner_ = typename zip_pair<OP, S, S0>::type;
+  using type = typename zip_combine<OP, inner_, Ss...>::type;
 };
 
 
@@ -70,6 +71,9 @@ struct zip
 template<auto... Is> using Vector = vlist<Is...>;
 
 
+// problem:
+//   implement zip<Vector<values...>, ...>
+//   such that its ::type member returns the multiplied reduction
 int main()
 {
   using Test = zip<Vector<1, 2, 3>,
