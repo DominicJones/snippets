@@ -97,6 +97,8 @@ bool almost_equal(const Rectangle& a, const Rectangle& b, float epsilon = k_defa
   1) check that each edge is aligned to either the x or y axis,
   2) check that one edge followed by the next edge does not form a concave corner.
 */
+// problem:
+//   implement the following function such that the tests pass
 std::optional<Rectangle> fit_into_rectangle(const Polygon& polygon, float epsilon = k_default_epsilon)
 {
   auto success = true;
@@ -139,6 +141,7 @@ std::optional<Rectangle> fit_into_rectangle(const Polygon& polygon, float epsilo
     // check for concavities
     if (i > 1)
     {
+      // should use the cross product here instead...
       success &= !(dy0 > 0 && dx > 0);
       success &= !(dy0 < 0 && dx < 0);
       success &= !(dx0 < 0 && dy > 0);
