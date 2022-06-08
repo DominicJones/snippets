@@ -1,3 +1,7 @@
+#include <utility>
+
+struct FriendKeyBackdoor;
+
 template<typename... T> class FriendKey;
 
 template<typename T, typename... Ts>
@@ -6,11 +10,20 @@ class FriendKey<T, Ts...> : FriendKey<T>, FriendKey<Ts...> {};
 template<typename T>
 class FriendKey<T>
 {
-protected:
+  friend FriendKeyBackdoor;
+  friend T;
   FriendKey() {}
   FriendKey(FriendKey const &) {}
-private:
-  friend T;
+};
+
+struct FriendKeyBackdoor
+{
+  template<typename MemFn, typename Object, typename... Args>
+  static auto invoke(MemFn memFn, Object &&object, Args &&...args)
+    -> decltype((object.*memFn)(std::forward<Args>(args)..., {}))
+  {
+    return (object.*memFn)(std::forward<Args>(args)..., {});
+  }
 };
 
 
@@ -20,7 +33,7 @@ class Baz;
 
 struct Foo
 {
-  void special(FriendKey<Bar, Baz>) const {}
+  void special(FriendKey<Bar>) const {}
   private: void secret() const {}
 };
 
@@ -29,7 +42,7 @@ struct Bar
   void evaluate(Foo const &foo)
   {
     foo.special({});
-    // foo.secret();  // should not compile
+    // foo.secret();    // does not compile
   }
 };
 
@@ -37,8 +50,9 @@ struct Baz
 {
   void evaluate(Foo const &foo)
   {
-    foo.special({});
-    // foo.secret();  // should not compile
+    FriendKeyBackdoor::invoke(&Foo::special, foo);
+    // foo.special({}); // does not compile
+    // foo.secret();    // does not compile
   }
 };
 
