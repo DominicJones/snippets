@@ -1,24 +1,26 @@
 #include <type_traits>
+#include <utility>
 
+
+template<typename, typename = void>
+struct has_member : std::false_type {};
 
 template<typename T>
-class has_at
-{
-private:
-  template<typename C> static std::true_type test(decltype(&C::at));
-  template<typename C> static std::false_type test(...);
+struct has_member<T, std::void_t<decltype(&T::member)> > : std::true_type {};
 
-public:
-  static auto constexpr value = decltype(test<T>(nullptr))::value;
+struct Pass
+{
+  void member(int const &) {}
 };
 
-
-struct HasMemberFunction { void at() {} };
-struct HasNotMemberFunction {};
+struct Fail
+{
+  template<typename T> void member(T const &) {}
+};
 
 
 int main()
 {
-  static_assert(has_at<HasMemberFunction>::value, "");
-  static_assert(!has_at<HasNotMemberFunction>::value, "");
+  static_assert(has_member<Pass>::value);
+  static_assert(!has_member<Fail>::value);
 }
