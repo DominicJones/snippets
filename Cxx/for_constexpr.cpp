@@ -18,7 +18,7 @@ static_assert(pow(5, 2) == 25);
 namespace version_1
 {
   template<int begin, int end, int incr, typename Fn>
-  constexpr void for_constexpr(Fn &&fn)
+  void constexpr for_constexpr(Fn &&fn)
   {
     if constexpr (begin != end)
     {
@@ -28,7 +28,7 @@ namespace version_1
   }
 
   template<int end>
-  constexpr auto factorial()
+  auto constexpr factorial()
   {
     auto result = 1;
     for_constexpr<0, end, 1>([&result]<auto it>(){ result *= (it+1); });
