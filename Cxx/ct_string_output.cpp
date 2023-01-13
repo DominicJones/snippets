@@ -1,27 +1,46 @@
-struct ct_str
+// C++20
+#include <memory>
+#include <cmath>
+
+
+struct ct_string
 {
   char _data[512]{};
-  std::size_t _size{0};
-  
-  template<std::size_t N> constexpr ct_str(char const (&str)[N])
-  : _data{}, _size{N-1}
+  int _size{0};
+
+  template<int N>
+  constexpr ct_string(char const (&str)[N], int const M = (N-1))
+    : _data{}
+    , _size{std::max(N-1, M)}
   {
-    for (std::size_t it = 0; it != _size; ++it)
-      _data[it] = str[it];
+    for (int it = 0; it != (N-1); ++it) _data[it] = str[it];
+    for (int it = (N-1); it != M; ++it) _data[it] = ' ';
   }
 };
 
-template<ct_str> struct print;
 
-print<"test"> p1{};
-ct_str test()
+template<ct_string> struct print;
+
+
+template<int N>
+ct_string constexpr name_value(char const (&str)[N], int const value)
 {
-  //        0         1
-  //        012345678901
-  ct_str s{"test@line:LL"};
-  s._data[10] = 2;
-  s._data[11] = 0;
-  return s;
+  int const n_pos = std::ceil(std::log10(value));
+  ct_string result(str, N + n_pos);
+
+  for (int it = 0; it != n_pos; ++it)
+  {
+    int const base = std::pow(10, n_pos - 1 - it);
+    int const vc = (value % (10 * base)) / base;
+    result._data[(N-1) + it] = vc;
+  }
+
+  return result;
 }
 
-print<test()> p2{};
+
+int main()
+{
+  std::array<char, 4096> object;
+  print<name_value("object size = ", sizeof(object))> _{};
+}
