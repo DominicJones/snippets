@@ -1,4 +1,5 @@
-// C++20
+// print generated string at compile time (c++20)
+
 #include <memory>
 #include <cmath>
 
