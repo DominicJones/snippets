@@ -20,9 +20,6 @@ struct ct_string
 };
 
 
-template<ct_string> struct print;
-
-
 template<int N>
 ct_string constexpr name_value(char const (&str)[N], int const value)
 {
@@ -40,8 +37,12 @@ ct_string constexpr name_value(char const (&str)[N], int const value)
 }
 
 
+template<bool B, ct_string M> struct static_assert_;
+template<ct_string M> struct static_assert_<true, M> {};
+
+
 int main()
 {
-  std::array<char, 4096> object;
-  print<name_value("object size = ", sizeof(object))> _{};
+  std::array<char, 4097> object;
+  static_assert_<(sizeof(object) <= 4096), name_value("object size = ", sizeof(object))> _{};
 }
