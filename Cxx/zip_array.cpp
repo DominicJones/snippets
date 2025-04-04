@@ -22,8 +22,8 @@ struct Zip
     auto constexpr zip = [](auto ...v) {
       auto result = std::array<int, size>{};
       result.fill(1);
-      for (std::size_t I = 0; I != size; ++I) {
-        result[I] *= (v[I] * ...);
+      for (std::size_t i = 0; i != size; ++i) {
+        result[i] *= (v[i] * ...);
       }
       return result;
     }(V{}...);
