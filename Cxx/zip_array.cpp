@@ -1,4 +1,4 @@
-// from:
+// based on:
 //   https://github.com/EnricoFabiano85/cpp/blob/main/ZipVectorTemplates.cpp
 
 #include <array>
