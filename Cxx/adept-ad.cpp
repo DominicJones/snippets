@@ -15,10 +15,10 @@ void hypot(aReal &a, aReal &b, aReal &r)
     r = t2;
   }
   
-  r.set_gradient(1.0);    // Seed the dependent variable, i.e. dr/dr = 1
+  r.set_gradient(1.0);  // Seed the dependent variable, i.e. [dr/dr]^T = 1
   
-  stack.reverse();        // Reverse-mode (adjoint) differentiation
+  stack.reverse();  // Evaluate the stack to compute the adjoint derivative
 
-  // dr/da = a.get_gradient()
-  // dr/db = b.get_gradient()
+  // [dr/da]^T = a.get_gradient()
+  // [dr/db]^T = b.get_gradient()
 }
