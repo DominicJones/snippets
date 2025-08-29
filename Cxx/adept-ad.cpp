@@ -16,6 +16,7 @@ void hypot(aReal &a, aReal &b, aReal &r)
   }
   
   r.set_gradient(1.0);    // Seed the dependent variable, i.e. dr/dr = 1
+  
   stack.reverse();        // Reverse-mode (adjoint) differentiation
 
   // dr/da = a.get_gradient()
