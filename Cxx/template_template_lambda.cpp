@@ -1,16 +1,21 @@
 #include <iostream>
+#include <type_traits>
 
-enum class Cast { Static, Dynamic, Reinterpret, C_Style, };
+enum class Cast { Null, Static, Dynamic, Reinterpret, C_Style, };
 
-template<Cast c, typename T>
-auto constexpr cast = [](auto &&v)
+template<typename T, Cast c = Cast::Static>
+inline auto constexpr cast = []<typename V>(V &&v) noexcept
 {
-  if constexpr (c == Cast::Static) return static_cast<T>(v);
-  if constexpr (c == Cast::Dynamic) return dynamic_cast<T>(v);
-  if constexpr (c == Cast::Reinterpret) return reinterpret_cast<T>(v);
-  /* (c == Cast::C_Style) */ return (T)v;
+  if constexpr (std::is_same_v<T, std::decay_t<V>>) return v;
+  else if constexpr (c == Cast::Static) return static_cast<T>(v);
+  else if constexpr (c == Cast::Dynamic) return dynamic_cast<T>(v);
+  else if constexpr (c == Cast::Reinterpret) return reinterpret_cast<T>(v);
+  else if constexpr (c == Cast::C_Style) return (T)v;
+  else static_assert(false, "invalid cast");
 };
 
-int main() {
-  std::cout << cast<Cast::Static, int>(3.14) << std::endl;
+int main()
+{
+  double v = 3.14;
+  std::cout << cast<float>(v) << std::endl;
 }
