@@ -1,6 +1,8 @@
 /**
  * From: https://github.com/SteveBronder/cppcon2025_autodiff/blob/main/code/sct.cpp
  *
+ * Also: https://godbolt.org/z/veexMT5vz
+ *
  * Implement a static expression-template-style reverse-mode system.
  *
  * The nodes in this system wrap lambdas that capture their children. Expressions
